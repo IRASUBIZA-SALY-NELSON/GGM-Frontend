@@ -1,11 +1,11 @@
 import React, { useState } from 'react'
 import { Search, Filter, ChevronDown, MoreHorizontal, Plus } from 'lucide-react'
-import AddUserModal from '../components/modals/AddUserModal'
-import UserSuccessModal from '../components/modals/UserSuccessModal'
-import DeleteUserModal from '../components/modals/DeleteUserModal'
-import ViewUserModal from '../components/modals/ViewUserModal'
-import EditUserModal from '../components/modals/EditUserModal'
-import FilterModal from '../components/modals/FilterModal'
+import AddUserModal from '../../components/modals/AddUserModal'
+import UserSuccessModal from '../../components/modals/UserSuccessModal'
+import DeleteUserModal from '../../components/modals/DeleteUserModal'
+import ViewUserModal from '../../components/modals/ViewUserModal'
+import EditUserModal from '../../components/modals/EditUserModal'
+import FilterModal from '../../components/modals/FilterModal'
 
 const UserManagement = () => {
   const [searchTerm, setSearchTerm] = useState('')

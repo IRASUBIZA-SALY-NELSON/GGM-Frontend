@@ -1,8 +1,8 @@
 import React, { useState } from 'react'
 import { Search, Filter, Plus, Eye, Trash2, ChevronLeft, ChevronRight, TrendingUp, TrendingDown } from 'lucide-react'
-import FilterModal from '../components/modals/FilterModal'
-import AddDistributorModal from '../components/modals/AddDistributorModal'
-import DeleteDistributorModal from '../components/modals/DeleteDistributorModal'
+import FilterModal from '../../components/modals/FilterModal'
+import AddDistributorModal from '../../components/modals/AddDistributorModal'
+import DeleteDistributorModal from '../../components/modals/DeleteDistributorModal'
 
 const Distributors = () => {
   const [searchTerm, setSearchTerm] = useState('')
