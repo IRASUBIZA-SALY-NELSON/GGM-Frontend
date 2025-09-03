@@ -7,6 +7,8 @@ import Dashboard from './pages/Dashboard'
 import UserManagement from './pages/UserManagement'
 import ActivityLogs from './pages/ActivityLogs'
 import Reports from './pages/Reports'
+import Distributors from './pages/Distributors'
+import Settings from './pages/Settings'
 import NotFound from './pages/NotFound'
 
 // Auth Pages
@@ -65,6 +67,26 @@ function App() {
             <ProtectedRoute>
               <Layout>
                 <Reports />
+              </Layout>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/distributors" 
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <Distributors />
+              </Layout>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/settings" 
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <Settings />
               </Layout>
             </ProtectedRoute>
           } 
