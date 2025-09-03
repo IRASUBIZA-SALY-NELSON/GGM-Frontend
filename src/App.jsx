@@ -33,8 +33,8 @@ function App() {
         <Route path="/auth/success" element={<Success />} />
         
         {/* Protected Routes */}
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
-        <Route path="/dashboard" element={
+        <Route path="/" element={<Navigate to="/admin/dashboard" replace />} />
+        <Route path="/admin/dashboard" element={
           <ProtectedRoute>
             <Layout>
               <Dashboard />
@@ -42,7 +42,7 @@ function App() {
           </ProtectedRoute>
         } />
         <Route 
-          path="/user-management" 
+          path="/admin/user-management" 
           element={
             <ProtectedRoute>
               <Layout>
@@ -52,7 +52,7 @@ function App() {
           } 
         />
         <Route 
-          path="/activity-logs" 
+          path="/admin/activity-logs" 
           element={
             <ProtectedRoute>
               <Layout>
@@ -62,7 +62,7 @@ function App() {
           } 
         />
         <Route 
-          path="/reports" 
+          path="/admin/reports" 
           element={
             <ProtectedRoute>
               <Layout>
@@ -72,7 +72,7 @@ function App() {
           } 
         />
         <Route 
-          path="/distributors" 
+          path="/admin/distributors" 
           element={
             <ProtectedRoute>
               <Layout>
@@ -82,7 +82,7 @@ function App() {
           } 
         />
         <Route 
-          path="/settings" 
+          path="/admin/settings" 
           element={
             <ProtectedRoute>
               <Layout>

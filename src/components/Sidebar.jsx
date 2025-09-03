@@ -13,12 +13,12 @@ import {
 
 const Sidebar = () => {
   const navigation = [
-    { name: 'Dashboard', href: '/dashboard', icon: Home },
-    { name: 'User Management', href: '/user-management', icon: Users },
-    { name: 'Activity Logs', href: '/activity-logs', icon: Activity },
-    { name: 'Reports', href: '/reports', icon: FileText },
-    { name: 'Distributors', href: '/distributors', icon: Package },
-    { name: 'Settings', href: '/settings', icon: Settings },
+    { name: 'Dashboard', href: '/admin/dashboard', icon: Home },
+    { name: 'User Management', href: '/admin/user-management', icon: Users },
+    { name: 'Activity Logs', href: '/admin/activity-logs', icon: Activity },
+    { name: 'Reports', href: '/admin/reports', icon: FileText },
+    { name: 'Distributors', href: '/admin/distributors', icon: Package },
+    { name: 'Settings', href: '/admin/settings', icon: Settings },
   ]
 
   return (
