@@ -4,6 +4,9 @@ import { AuthProvider } from './context/AuthContext'
 import ProtectedRoute from './components/ProtectedRoute'
 import Layout from './components/Layout'
 import Dashboard from './pages/Dashboard'
+import UserManagement from './pages/UserManagement'
+import ActivityLogs from './pages/ActivityLogs'
+import Reports from './pages/Reports'
 import NotFound from './pages/NotFound'
 
 // Auth Pages
@@ -36,7 +39,36 @@ function App() {
             </Layout>
           </ProtectedRoute>
         } />
-        
+        <Route 
+          path="/user-management" 
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <UserManagement />
+              </Layout>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/activity-logs" 
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <ActivityLogs />
+              </Layout>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/reports" 
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <Reports />
+              </Layout>
+            </ProtectedRoute>
+          } 
+        />
         {/* Catch all */}
         <Route path="*" element={<NotFound />} />
         </Routes>

@@ -14,19 +14,22 @@ import {
 const Sidebar = () => {
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: Home },
-    { name: 'Users', href: '/users', icon: Users },
-    { name: 'Data Management', href: '/data', icon: Database },
-    { name: 'Analytics', href: '/analytics', icon: BarChart3 },
+    { name: 'User Management', href: '/user-management', icon: Users },
+    { name: 'Activity Logs', href: '/activity-logs', icon: Activity },
     { name: 'Reports', href: '/reports', icon: FileText },
-    { name: 'Inventory', href: '/inventory', icon: Package },
-    { name: 'Activity', href: '/activity', icon: Activity },
+    { name: 'Distributors', href: '/distributors', icon: Package },
     { name: 'Settings', href: '/settings', icon: Settings },
   ]
 
   return (
     <div className="bg-white w-64 shadow-lg border-r border-gray-200">
-      <div className="flex items-center justify-center h-16 px-4 border-b border-gray-200">
-        <h2 className="text-xl font-bold text-purple-600">GGM System</h2>
+      <div className="flex items-center h-16 px-6 border-b border-gray-200">
+        <div className="flex items-center space-x-2">
+          <div className="w-8 h-8 bg-purple-600 rounded-lg flex items-center justify-center">
+            <span className="text-white font-bold text-sm">FMS</span>
+          </div>
+          <span className="font-semibold text-gray-900">FMS</span>
+        </div>
       </div>
       
       <nav className="mt-8">
