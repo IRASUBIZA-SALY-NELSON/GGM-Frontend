@@ -9,6 +9,14 @@ import ActivityLogs from './pages/admin/ActivityLogs'
 import Reports from './pages/admin/Reports'
 import Distributors from './pages/admin/Distributors'
 import Settings from './pages/admin/Settings'
+import StoreManagerDashboard from './pages/store-manager/Dashboard'
+import MyStock from './pages/store-manager/MyStock'
+import ReorderCart from './pages/store-manager/ReorderCart'
+import ProductHistory from './pages/store-manager/ProductHistory'
+import OrderDetails from './pages/store-manager/OrderDetails'
+import PlaceOrder from './pages/store-manager/PlaceOrder'
+import OrderCart from './pages/store-manager/OrderCart'
+import StoreManagerLayout from './components/StoreManagerLayout'
 import NotFound from './pages/NotFound'
 
 // Auth Pages
@@ -91,6 +99,79 @@ function App() {
             </ProtectedRoute>
           } 
         />
+        
+        {/* Store Manager Routes */}
+        <Route 
+          path="/store-manager/dashboard" 
+          element={
+            <ProtectedRoute>
+              <StoreManagerLayout>
+                <StoreManagerDashboard />
+              </StoreManagerLayout>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/store-manager/my-stock" 
+          element={
+            <ProtectedRoute>
+              <StoreManagerLayout>
+                <MyStock />
+              </StoreManagerLayout>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/store-manager/reorder-cart" 
+          element={
+            <ProtectedRoute>
+              <StoreManagerLayout>
+                <ReorderCart />
+              </StoreManagerLayout>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/store-manager/product-history" 
+          element={
+            <ProtectedRoute>
+              <StoreManagerLayout>
+                <ProductHistory />
+              </StoreManagerLayout>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/store-manager/order-details/:orderId" 
+          element={
+            <ProtectedRoute>
+              <StoreManagerLayout>
+                <OrderDetails />
+              </StoreManagerLayout>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/store-manager/place-order" 
+          element={
+            <ProtectedRoute>
+              <StoreManagerLayout>
+                <PlaceOrder />
+              </StoreManagerLayout>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/store-manager/order-cart" 
+          element={
+            <ProtectedRoute>
+              <StoreManagerLayout>
+                <OrderCart />
+              </StoreManagerLayout>
+            </ProtectedRoute>
+          } 
+        />
+        
         {/* Catch all */}
         <Route path="*" element={<NotFound />} />
         </Routes>
