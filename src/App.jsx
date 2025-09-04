@@ -26,6 +26,7 @@ import StoreManagerLayout from './store-manager/components/StoreManagerLayout'
 import WarehouseManagerDashboard from './warehouse-manager/pages/Dashboard'
 import ProcessOrders from './warehouse-manager/pages/ProcessOrders'
 import StockManagement from './warehouse-manager/pages/StockManagement'
+import StockTransfers from './warehouse-manager/pages/StockTransfers'
 import WarehouseManagerLayout from './warehouse-manager/components/WarehouseManagerLayout'
 import SalesManagerDashboard from './sales-manager/pages/Dashboard'
 import MyTeam from './sales-manager/pages/MyTeam';
@@ -469,6 +470,7 @@ function App() {
         <Route path="/warehouse-manager/dashboard" element={<ProtectedRoute><WarehouseManagerLayout><WarehouseManagerDashboard /></WarehouseManagerLayout></ProtectedRoute>} />
         <Route path="/warehouse-manager/process-orders" element={<ProtectedRoute><WarehouseManagerLayout><ProcessOrders /></WarehouseManagerLayout></ProtectedRoute>} />
         <Route path="/warehouse-manager/stock-management" element={<ProtectedRoute><WarehouseManagerLayout><StockManagement /></WarehouseManagerLayout></ProtectedRoute>} />
+        <Route path="/warehouse-manager/stock-transfers" element={<ProtectedRoute><WarehouseManagerLayout><StockTransfers /></WarehouseManagerLayout></ProtectedRoute>} />
         
         {/* Catch all */}
         <Route path="*" element={<NotFound />} />
