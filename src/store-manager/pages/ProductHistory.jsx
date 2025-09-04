@@ -44,7 +44,7 @@ const ProductHistory = () => {
             </button>
             <div>
               <h1 className="text-2xl font-bold text-gray-900">Stock Management</h1>
-              <p className="text-sm text-gray-500">My Stock > Product ID 1234510 > History</p>
+              <p className="text-sm text-gray-500">My Stock &gt; Product ID 1234510 &gt; History</p>
             </div>
           </div>
           

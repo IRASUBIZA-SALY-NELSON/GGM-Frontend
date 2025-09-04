@@ -7,13 +7,13 @@ import Dashboard from './pages/admin/Dashboard'
 import UserManagement from './pages/admin/UserManagement'
 import ActivityLogs from './pages/admin/ActivityLogs'
 import Reports from './pages/admin/Reports'
-import Distributors from './pages/admin/Distributors'
+import AdminDistributors from './pages/admin/Distributors'
 import Settings from './pages/admin/Settings'
 import StoreManagerDashboard from './store-manager/pages/Dashboard'
 import MyStock from './store-manager/pages/MyStock'
 import ReorderCart from './store-manager/pages/ReorderCart'
 import ProductHistory from './store-manager/pages/ProductHistory'
-import OrderDetails from './store-manager/pages/OrderDetails'
+import StoreOrderDetails from './store-manager/pages/OrderDetails'
 import PlaceOrder from './store-manager/pages/PlaceOrder'
 import OrderCart from './store-manager/pages/OrderCart'
 import Billing from './store-manager/pages/Billing'
@@ -23,6 +23,28 @@ import PaymentHistory from './store-manager/pages/PaymentHistory'
 import BillingOrderDetails from './store-manager/pages/BillingOrderDetails'
 import PaymentReceipt from './store-manager/pages/PaymentReceipt'
 import StoreManagerLayout from './store-manager/components/StoreManagerLayout'
+import SalesManagerDashboard from './sales-manager/pages/Dashboard'
+import MyTeam from './sales-manager/pages/MyTeam';
+import TeamMemberProfile from './sales-manager/pages/TeamMemberProfile';
+import AddNewSalesAssistant from './sales-manager/pages/AddNewSalesAssistant';
+import Orders from './sales-manager/pages/Orders';
+import OrderDetails from './sales-manager/pages/OrderDetails';
+import Distributors from './sales-manager/pages/Distributors';
+import DistributorDetails from './sales-manager/pages/DistributorDetails';
+import OnboardDistributor from './sales-manager/pages/OnboardDistributor';
+import PricingCatalog from './sales-manager/pages/PricingCatalog';
+import AddNewProduct from './sales-manager/pages/AddNewProduct';
+import SalesAnalytics from './sales-manager/pages/SalesAnalytics';
+import SalesManagerLayout from './sales-manager/components/SalesManagerLayout';
+
+// Sales Assistant Components
+import SalesAssistantDashboard from './sales-assistant/pages/Dashboard';
+import SalesAssistantOrders from './sales-assistant/pages/Orders';
+import SalesAssistantOrderDetails from './sales-assistant/pages/OrderDetails';
+import SalesAssistantDistributors from './sales-assistant/pages/Distributors';
+import SalesAssistantDistributorDetails from './sales-assistant/pages/DistributorDetails';
+import SalesAssistantProducts from './sales-assistant/pages/Products';
+import SalesAssistantLayout from './sales-assistant/components/SalesAssistantLayout';
 import NotFound from './pages/NotFound'
 
 // Auth Pages
@@ -90,7 +112,7 @@ function App() {
           element={
             <ProtectedRoute>
               <Layout>
-                <Distributors />
+                <AdminDistributors />
               </Layout>
             </ProtectedRoute>
           } 
@@ -152,7 +174,7 @@ function App() {
           element={
             <ProtectedRoute>
               <StoreManagerLayout>
-                <OrderDetails />
+                <StoreOrderDetails />
               </StoreManagerLayout>
             </ProtectedRoute>
           } 
@@ -236,6 +258,198 @@ function App() {
               <StoreManagerLayout>
                 <PaymentReceipt />
               </StoreManagerLayout>
+            </ProtectedRoute>
+          } 
+        />
+        
+        {/* Sales Manager Routes */}
+        <Route 
+          path="/sales-manager/dashboard" 
+          element={
+            <ProtectedRoute>
+              <SalesManagerLayout>
+                <SalesManagerDashboard />
+              </SalesManagerLayout>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/sales-manager/my-team" 
+          element={
+            <ProtectedRoute>
+              <SalesManagerLayout>
+                <MyTeam />
+              </SalesManagerLayout>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/sales-manager/my-team/profile/:memberId" 
+          element={
+            <ProtectedRoute>
+              <SalesManagerLayout>
+                <TeamMemberProfile />
+              </SalesManagerLayout>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/sales-manager/my-team/add-new" 
+          element={
+            <ProtectedRoute>
+              <SalesManagerLayout>
+                <AddNewSalesAssistant />
+              </SalesManagerLayout>
+            </ProtectedRoute>
+          } 
+        />
+
+        {/* Orders Routes */}
+        <Route 
+          path="/sales-manager/orders" 
+          element={
+            <ProtectedRoute>
+              <SalesManagerLayout>
+                <Orders />
+              </SalesManagerLayout>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/sales-manager/orders/:orderId" 
+          element={
+            <ProtectedRoute>
+              <SalesManagerLayout>
+                <OrderDetails />
+              </SalesManagerLayout>
+            </ProtectedRoute>
+          } 
+        />
+
+        {/* Distributors Routes */}
+        <Route 
+          path="/sales-manager/distributors" 
+          element={
+            <ProtectedRoute>
+              <SalesManagerLayout>
+                <Distributors />
+              </SalesManagerLayout>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/sales-manager/distributors/:distributorId" 
+          element={
+            <ProtectedRoute>
+              <SalesManagerLayout>
+                <DistributorDetails />
+              </SalesManagerLayout>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/sales-manager/distributors/add-new" 
+          element={
+            <ProtectedRoute>
+              <SalesManagerLayout>
+                <OnboardDistributor />
+              </SalesManagerLayout>
+            </ProtectedRoute>
+          } 
+        />
+
+        {/* Pricing & Catalog Routes */}
+        <Route 
+          path="/sales-manager/pricing-catalog" 
+          element={
+            <ProtectedRoute>
+              <SalesManagerLayout>
+                <PricingCatalog />
+              </SalesManagerLayout>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/sales-manager/pricing-catalog/add-new" 
+          element={
+            <ProtectedRoute>
+              <SalesManagerLayout>
+                <AddNewProduct />
+              </SalesManagerLayout>
+            </ProtectedRoute>
+          } 
+        />
+
+        {/* Sales Analytics Route */}
+        <Route 
+          path="/sales-manager/sales-analytics" 
+          element={
+            <ProtectedRoute>
+              <SalesManagerLayout>
+                <SalesAnalytics />
+              </SalesManagerLayout>
+            </ProtectedRoute>
+          } 
+        />
+
+        {/* Sales Assistant Routes */}
+        <Route 
+          path="/sales-assistant/dashboard" 
+          element={
+            <ProtectedRoute>
+              <SalesAssistantLayout>
+                <SalesAssistantDashboard />
+              </SalesAssistantLayout>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/sales-assistant/orders" 
+          element={
+            <ProtectedRoute>
+              <SalesAssistantLayout>
+                <SalesAssistantOrders />
+              </SalesAssistantLayout>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/sales-assistant/orders/:orderId" 
+          element={
+            <ProtectedRoute>
+              <SalesAssistantLayout>
+                <SalesAssistantOrderDetails />
+              </SalesAssistantLayout>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/sales-assistant/distributors" 
+          element={
+            <ProtectedRoute>
+              <SalesAssistantLayout>
+                <SalesAssistantDistributors />
+              </SalesAssistantLayout>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/sales-assistant/distributors/:distributorId" 
+          element={
+            <ProtectedRoute>
+              <SalesAssistantLayout>
+                <SalesAssistantDistributorDetails />
+              </SalesAssistantLayout>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/sales-assistant/products" 
+          element={
+            <ProtectedRoute>
+              <SalesAssistantLayout>
+                <SalesAssistantProducts />
+              </SalesAssistantLayout>
             </ProtectedRoute>
           } 
         />

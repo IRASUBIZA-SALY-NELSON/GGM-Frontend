@@ -1,0 +1,366 @@
+import React from 'react';
+import { Search, Bell, ChevronDown, TrendingUp, DollarSign, Users, Award, BarChart3, CheckCircle, DollarSign as PriceIcon, Activity } from 'lucide-react';
+
+const Dashboard = () => {
+  // Sample data for the bar chart - matching the image exactly
+  const chartData = [
+    { month: 'Jan', value: 20, percentage: 20 },
+    { month: 'Feb', value: 55, percentage: 55 },
+    { month: 'Mar', value: 33, percentage: 33 },
+    { month: 'Apr', value: 83, percentage: 83 },
+    { month: 'May', value: 45, percentage: 45 },
+    { month: 'Jun', value: 65, percentage: 65 },
+    { month: 'Jul', value: 37, percentage: 37 },
+    { month: 'Aug', value: 100, percentage: 100 },
+    { month: 'Sep', value: 45, percentage: 45 },
+    { month: 'Oct', value: 72, percentage: 72 },
+    { month: 'Nov', value: 100, percentage: 100 },
+    { month: 'Dec', value: 62, percentage: 62 }
+  ];
+
+  // Sample pending approval data matching the image
+  const pendingApprovals = [
+    {
+      id: 1,
+      distributorName: 'Louise Watson',
+      salesAssistantName: 'Louise Watson',
+      orderValue: '1,000 rwf',
+      timePending: '1day 8hrs',
+      distributorAvatar: '/distributor.png',
+      salesAvatar: '/distributor.png'
+    },
+    {
+      id: 2,
+      distributorName: 'Darlene Robertson',
+      salesAssistantName: 'Darlene Robertson',
+      orderValue: '1,000.00 rwf',
+      timePending: '2days 5hrs',
+      distributorAvatar: '/distributor.png',
+      salesAvatar: '/distributor.png'
+    },
+    {
+      id: 3,
+      distributorName: 'Jacob Jones',
+      salesAssistantName: 'Jacob Jones',
+      orderValue: '2,000.00 rwf',
+      timePending: '1month 2days 3hrs',
+      distributorAvatar: '/distributor.png',
+      salesAvatar: '/distributor.png'
+    },
+    {
+      id: 4,
+      distributorName: 'Kathryn Murphy',
+      salesAssistantName: 'Kathryn Murphy',
+      orderValue: '500.00 rwf',
+      timePending: '2days 5hrs',
+      distributorAvatar: '/distributor.png',
+      salesAvatar: '/distributor.png'
+    },
+    {
+      id: 5,
+      distributorName: 'Leslie Alexander',
+      salesAssistantName: 'Leslie Alexander',
+      orderValue: '400.00 rwf',
+      timePending: '2days 5hrs',
+      distributorAvatar: '/distributor.png',
+      salesAvatar: '/distributor.png'
+    },
+    {
+      id: 6,
+      distributorName: 'Ronald Richards',
+      salesAssistantName: 'Ronald Richards',
+      orderValue: '500.00 rwf',
+      timePending: '2weeks 5days 2hrs',
+      distributorAvatar: '/distributor.png',
+      salesAvatar: '/distributor.png'
+    }
+  ];
+
+  return (
+    <div className="flex-1 p-6 bg-gray-50">
+      {/* Header */}
+      <div className="flex justify-between items-center mb-8">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Hello Robert 👋</h1>
+        </div>
+        
+        <div className="flex items-center space-x-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+            <input
+              type="text"
+              placeholder="Search..."
+              className="pl-10 pr-4 py-2 w-80 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            />
+          </div>
+          <button className="p-2 text-gray-600 hover:text-gray-900">
+            <Bell className="w-5 h-5" />
+          </button>
+          <div className="flex items-center space-x-2">
+            <img src="/distributor.png" alt="Profile" className="w-8 h-8 rounded-full" />
+            <span className="text-sm font-medium text-gray-700">Robert Allen</span>
+            <ChevronDown className="w-4 h-4 text-gray-400" />
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        {/* Left Column - Stats Cards */}
+        <div className="lg:col-span-3 space-y-6">
+          {/* Stats Cards Row */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Total Orders Card */}
+            <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center space-x-2">
+                  <div className="p-2 bg-purple-100 rounded-lg">
+                    <BarChart3 className="w-5 h-5 text-purple-600" />
+                  </div>
+                  <span className="text-sm text-gray-600">Total Orders</span>
+                  <button className="text-gray-400 hover:text-gray-600">
+                    <ChevronDown className="w-4 h-4" />
+                  </button>
+                </div>
+                <span className="text-xs text-gray-500">April</span>
+              </div>
+              <div className="text-3xl font-bold text-gray-900 mb-1">560</div>
+              <div className="flex items-center text-sm">
+                <span className="text-green-600 font-medium">↗ 8.5%</span>
+              </div>
+            </div>
+
+            {/* Total Revenue Card */}
+            <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center space-x-2">
+                  <div className="p-2 bg-purple-100 rounded-lg">
+                    <DollarSign className="w-5 h-5 text-purple-600" />
+                  </div>
+                  <span className="text-sm text-gray-600">Total Revenue</span>
+                  <button className="text-gray-400 hover:text-gray-600">
+                    <ChevronDown className="w-4 h-4" />
+                  </button>
+                </div>
+                <span className="text-xs text-gray-500">April</span>
+              </div>
+              <div className="text-3xl font-bold text-gray-900 mb-1">1,050,000 rwf</div>
+              <div className="flex items-center text-sm">
+                <span className="text-green-600 font-medium">↗ 4.3%</span>
+              </div>
+            </div>
+
+            {/* Revenue vs Target Card */}
+            <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center space-x-2">
+                  <div className="p-2 bg-purple-100 rounded-lg">
+                    <TrendingUp className="w-5 h-5 text-purple-600" />
+                  </div>
+                  <span className="text-sm text-gray-600">Revenue vs Target</span>
+                  <button className="text-gray-400 hover:text-gray-600">
+                    <ChevronDown className="w-4 h-4" />
+                  </button>
+                </div>
+                <span className="text-xs text-gray-500">April</span>
+              </div>
+              <div className="text-3xl font-bold text-gray-900 mb-1">500,000rwf</div>
+              <div className="flex items-center text-sm">
+                <span className="text-red-600 font-medium">↘ 4.3%</span>
+              </div>
+            </div>
+
+            {/* Best Distributor Card */}
+            <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center space-x-2">
+                  <div className="p-2 bg-purple-100 rounded-lg">
+                    <Users className="w-5 h-5 text-purple-600" />
+                  </div>
+                  <span className="text-sm text-gray-600">Best Distributor</span>
+                  <button className="text-gray-400 hover:text-gray-600">
+                    <ChevronDown className="w-4 h-4" />
+                  </button>
+                </div>
+                <span className="text-xs text-gray-500">April</span>
+              </div>
+              <div className="text-3xl font-bold text-gray-900 mb-1">John Doe</div>
+              <div className="text-sm text-gray-500">Distributor of the month</div>
+            </div>
+          </div>
+
+          {/* Chart Section */}
+          <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
+      <div className="flex justify-between items-center mb-8">
+        <h3 className="text-lg font-semibold text-gray-900">My Sales This Year</h3>
+        <div className="flex items-center space-x-2 bg-gray-50 px-3 py-1 rounded border">
+          <span className="text-sm text-gray-700">2025</span>
+          <ChevronDown className="w-4 h-4 text-gray-400" />
+        </div>
+      </div>
+      
+      <div className="relative">
+        {/* Chart area */}
+        <div className="ml-4 relative">
+          {/* Bars */}
+          <div className="flex items-end justify-between h-80 space-x-2 relative">
+            {[
+              { month: 'Jan', percentage: 20 },
+              { month: 'Feb', percentage: 55 },
+              { month: 'Mar', percentage: 35 },
+              { month: 'Apr', percentage: 82 },
+              { month: 'May', percentage: 46 },
+              { month: 'Jun', percentage: 65 },
+              { month: 'Jul', percentage: 38 },
+              { month: 'Aug', percentage: 100 },
+              { month: 'Sep', percentage: 45 },
+              { month: 'Oct', percentage: 72 },
+              { month: 'Nov', percentage: 100 },
+              { month: 'Dec', percentage: 62 }
+            ].map((data, index) => (
+              <div key={index} className="flex flex-col items-center flex-1 group relative">
+                {/* Tooltip for Feb */}
+                {index === 1 && (
+                  <div className="absolute -top-16 left-1/2 transform -translate-x-1/2 bg-white border border-gray-200 rounded-lg p-2 shadow-lg z-10">
+                    <div className="text-xs text-gray-600">Sales</div>
+                    <div className="text-sm font-semibold">20.1k</div>
+                    <div className="text-xs text-gray-600">200,000 rwf</div>
+                    <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-full">
+                      <div className="w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-200"></div>
+                    </div>
+                  </div>
+                )}
+                
+                <div className="flex flex-col items-center h-80 justify-end">
+                  <div 
+                    className="bg-purple-600 rounded-t-sm transition-all duration-300 hover:bg-purple-700"
+                    style={{ 
+                      height: `${Math.min((data.percentage / 100) * 320, 320)}px`,
+                      width: '20px'
+                    }}
+                  ></div>
+                </div>
+              </div>
+            ))}
+          </div>
+          
+          {/* X-axis labels */}
+          <div className="flex justify-between mt-4">
+            {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map((month, index) => (
+              <span key={index} className="text-xs text-gray-600 flex-1 text-center">{month}</span>
+            ))}
+          </div>
+          
+          {/* X-axis label */}
+          <div className="text-center mt-4">
+            <span className="text-sm text-gray-600">Months of the year</span>
+          </div>
+        </div>
+      </div>
+    </div>
+          {/* Pending Approval List */}
+          <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-lg font-semibold text-gray-900">Pending Approval List (Highest Priority)</h3>
+              <button className="text-purple-600 hover:text-purple-700 text-sm font-medium">
+                View All
+              </button>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="text-left text-sm text-gray-500 border-b">
+                    <th className="pb-3 font-medium">Distributor Name</th>
+                    <th className="pb-3 font-medium">Sales Assistant Name</th>
+                    <th className="pb-3 font-medium">Order Value</th>
+                    <th className="pb-3 font-medium">Time Pending</th>
+                    <th className="pb-3 font-medium">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {pendingApprovals.map((approval) => (
+                    <tr key={approval.id} className="hover:bg-gray-50">
+                      <td className="py-4">
+                        <div className="flex items-center space-x-3">
+                          <img 
+                            src={approval.distributorAvatar} 
+                            alt={approval.distributorName}
+                            className="w-8 h-8 rounded-full"
+                          />
+                          <span className="text-sm font-medium text-gray-900">{approval.distributorName}</span>
+                        </div>
+                      </td>
+                      <td className="py-4">
+                        <div className="flex items-center space-x-3">
+                          <img 
+                            src={approval.salesAvatar} 
+                            alt={approval.salesAssistantName}
+                            className="w-8 h-8 rounded-full"
+                          />
+                          <span className="text-sm font-medium text-gray-900">{approval.salesAssistantName}</span>
+                        </div>
+                      </td>
+                      <td className="py-4">
+                        <span className="text-sm text-gray-900">{approval.orderValue}</span>
+                      </td>
+                      <td className="py-4">
+                        <span className="text-sm text-gray-600">{approval.timePending}</span>
+                      </td>
+                      <td className="py-4">
+                        <button className="px-4 py-2 bg-purple-600 text-white text-sm rounded-lg hover:bg-purple-700 transition-colors">
+                          Review
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            
+            <div className="flex items-center justify-between mt-6 text-sm text-gray-500">
+              <div className="flex items-center space-x-2">
+                <span>Showing</span>
+                <select className="border border-gray-300 rounded px-2 py-1 text-sm">
+                  <option>10</option>
+                  <option>25</option>
+                  <option>50</option>
+                </select>
+                <span>Showing 1 to 10 out of 50 records</span>
+              </div>
+              <div className="flex items-center space-x-1">
+                <button className="px-2 py-1 text-gray-400 hover:text-gray-600">&lt;</button>
+                <button className="px-3 py-1 bg-purple-600 text-white rounded text-sm">1</button>
+                <button className="px-3 py-1 text-gray-600 hover:text-gray-900">2</button>
+                <button className="px-3 py-1 text-gray-600 hover:text-gray-900">3</button>
+                <button className="px-3 py-1 text-gray-600 hover:text-gray-900">4</button>
+                <button className="px-2 py-1 text-gray-400 hover:text-gray-600">&gt;</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Right Column - Quick Links */}
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold text-gray-900">Quick Links</h3>
+          
+          <button className="w-full flex items-center justify-center space-x-2 p-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
+            <CheckCircle className="w-5 h-5" />
+            <span>Approve Orders</span>
+          </button>
+          
+          <button className="w-full flex items-center justify-center space-x-2 p-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
+            <PriceIcon className="w-5 h-5" />
+            <span>Set Pricing</span>
+          </button>
+          
+          <button className="w-full flex items-center justify-center space-x-2 p-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
+            <Activity className="w-5 h-5" />
+            <span>Track Performance</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Dashboard;
