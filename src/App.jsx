@@ -16,6 +16,12 @@ import ProductHistory from './pages/store-manager/ProductHistory'
 import OrderDetails from './pages/store-manager/OrderDetails'
 import PlaceOrder from './pages/store-manager/PlaceOrder'
 import OrderCart from './pages/store-manager/OrderCart'
+import Billing from './pages/store-manager/Billing'
+import ViewInvoice from './pages/store-manager/ViewInvoice'
+import PayInvoice from './pages/store-manager/PayInvoice'
+import PaymentHistory from './pages/store-manager/PaymentHistory'
+import BillingOrderDetails from './pages/store-manager/BillingOrderDetails'
+import PaymentReceipt from './pages/store-manager/PaymentReceipt'
 import StoreManagerLayout from './components/StoreManagerLayout'
 import NotFound from './pages/NotFound'
 
@@ -167,6 +173,68 @@ function App() {
             <ProtectedRoute>
               <StoreManagerLayout>
                 <OrderCart />
+              </StoreManagerLayout>
+            </ProtectedRoute>
+          } 
+        />
+        
+        {/* Billing Routes */}
+        <Route 
+          path="/store-manager/billing" 
+          element={
+            <ProtectedRoute>
+              <StoreManagerLayout>
+                <Billing />
+              </StoreManagerLayout>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/store-manager/billing/invoice/:invoiceId" 
+          element={
+            <ProtectedRoute>
+              <StoreManagerLayout>
+                <ViewInvoice />
+              </StoreManagerLayout>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/store-manager/billing/pay-invoice/:invoiceId" 
+          element={
+            <ProtectedRoute>
+              <StoreManagerLayout>
+                <PayInvoice />
+              </StoreManagerLayout>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/store-manager/billing/payment-history" 
+          element={
+            <ProtectedRoute>
+              <StoreManagerLayout>
+                <PaymentHistory />
+              </StoreManagerLayout>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/store-manager/billing/order/:orderId" 
+          element={
+            <ProtectedRoute>
+              <StoreManagerLayout>
+                <BillingOrderDetails />
+              </StoreManagerLayout>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/store-manager/billing/receipt/:receiptId" 
+          element={
+            <ProtectedRoute>
+              <StoreManagerLayout>
+                <PaymentReceipt />
               </StoreManagerLayout>
             </ProtectedRoute>
           } 
