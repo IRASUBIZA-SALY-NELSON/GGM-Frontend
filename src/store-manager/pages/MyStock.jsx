@@ -1,9 +1,9 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Search, Filter, ShoppingCart, MoreVertical, Package, Eye } from 'lucide-react'
-import SpecifyQuantityModal from '../../components/modals/SpecifyQuantityModal'
-import RemoveProductModal from '../../components/modals/RemoveProductModal'
-import UpdateQuantityModal from '../../components/modals/UpdateQuantityModal'
+import SpecifyQuantityModal from '../modals/SpecifyQuantityModal'
+import RemoveProductModal from '../modals/RemoveProductModal'
+import UpdateQuantityModal from '../modals/UpdateQuantityModal'
 
 const MyStock = () => {
   const navigate = useNavigate()

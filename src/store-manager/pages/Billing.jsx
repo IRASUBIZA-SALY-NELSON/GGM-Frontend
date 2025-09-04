@@ -57,7 +57,7 @@ const Billing = () => {
             {/* User Profile */}
             <div className="flex items-center space-x-2">
               <img 
-                src="/1.png" 
+                src="1.png" 
                 alt="Robert Allen" 
                 className="w-8 h-8 rounded-full"
               />

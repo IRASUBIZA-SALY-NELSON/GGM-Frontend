@@ -1,8 +1,8 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Search, Filter, ShoppingCart } from 'lucide-react'
-import StoreManagerFilterModal from '../../components/modals/StoreManagerFilterModal'
-import SpecifyQuantityModal from '../../components/modals/SpecifyQuantityModal'
+import SubmitOrderModal from '../modals/SubmitOrderModal'
+import SpecifyQuantityModal from '../modals/SpecifyQuantityModal'
 
 const PlaceOrder = () => {
   const navigate = useNavigate()
