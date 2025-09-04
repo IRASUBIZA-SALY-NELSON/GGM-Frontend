@@ -23,6 +23,10 @@ import PaymentHistory from './store-manager/pages/PaymentHistory'
 import BillingOrderDetails from './store-manager/pages/BillingOrderDetails'
 import PaymentReceipt from './store-manager/pages/PaymentReceipt'
 import StoreManagerLayout from './store-manager/components/StoreManagerLayout'
+import WarehouseManagerDashboard from './warehouse-manager/pages/Dashboard'
+import ProcessOrders from './warehouse-manager/pages/ProcessOrders'
+import StockManagement from './warehouse-manager/pages/StockManagement'
+import WarehouseManagerLayout from './warehouse-manager/components/WarehouseManagerLayout'
 import SalesManagerDashboard from './sales-manager/pages/Dashboard'
 import MyTeam from './sales-manager/pages/MyTeam';
 import TeamMemberProfile from './sales-manager/pages/TeamMemberProfile';
@@ -45,6 +49,15 @@ import SalesAssistantDistributors from './sales-assistant/pages/Distributors';
 import SalesAssistantDistributorDetails from './sales-assistant/pages/DistributorDetails';
 import SalesAssistantProducts from './sales-assistant/pages/Products';
 import SalesAssistantLayout from './sales-assistant/components/SalesAssistantLayout';
+
+// Accountant Components
+import AccountantDashboard from './accountant/pages/Dashboard';
+import AccountantPayments from './accountant/pages/Payments';
+import RecordPayment from './accountant/pages/RecordPayment';
+import AccountantInvoices from './accountant/pages/Invoices';
+import AccountantOrders from './accountant/pages/Orders';
+import AccountantOrderDetails from './accountant/pages/OrderDetails';
+import AccountantLayout from './accountant/components/AccountantLayout';
 import NotFound from './pages/NotFound'
 
 // Auth Pages
@@ -380,17 +393,6 @@ function App() {
           } 
         />
 
-        {/* Sales Analytics Route */}
-        <Route 
-          path="/sales-manager/sales-analytics" 
-          element={
-            <ProtectedRoute>
-              <SalesManagerLayout>
-                <SalesAnalytics />
-              </SalesManagerLayout>
-            </ProtectedRoute>
-          } 
-        />
 
         {/* Sales Assistant Routes */}
         <Route 
@@ -453,6 +455,20 @@ function App() {
             </ProtectedRoute>
           } 
         />
+
+        {/* Accountant Routes */}
+        <Route path="/accountant/dashboard" element={<ProtectedRoute><AccountantLayout><AccountantDashboard /></AccountantLayout></ProtectedRoute>} />
+        <Route path="/accountant/payments" element={<ProtectedRoute><AccountantLayout><AccountantPayments /></AccountantLayout></ProtectedRoute>} />
+        <Route path="/accountant/payments/record" element={<ProtectedRoute><AccountantLayout><RecordPayment /></AccountantLayout></ProtectedRoute>} />
+        <Route path="/accountant/invoices" element={<ProtectedRoute><AccountantLayout><AccountantInvoices /></AccountantLayout></ProtectedRoute>} />
+        <Route path="/accountant/orders" element={<ProtectedRoute><AccountantLayout><AccountantOrders /></AccountantLayout></ProtectedRoute>} />
+        <Route path="/accountant/orders/:orderId" element={<ProtectedRoute><AccountantLayout><AccountantOrderDetails /></AccountantLayout></ProtectedRoute>} />
+        <Route path="/accountant/sales-analytics" element={<ProtectedRoute><AccountantLayout><SalesAnalytics /></AccountantLayout></ProtectedRoute>} />
+        
+        {/* Warehouse Manager Routes */}
+        <Route path="/warehouse-manager/dashboard" element={<ProtectedRoute><WarehouseManagerLayout><WarehouseManagerDashboard /></WarehouseManagerLayout></ProtectedRoute>} />
+        <Route path="/warehouse-manager/process-orders" element={<ProtectedRoute><WarehouseManagerLayout><ProcessOrders /></WarehouseManagerLayout></ProtectedRoute>} />
+        <Route path="/warehouse-manager/stock-management" element={<ProtectedRoute><WarehouseManagerLayout><StockManagement /></WarehouseManagerLayout></ProtectedRoute>} />
         
         {/* Catch all */}
         <Route path="*" element={<NotFound />} />
