@@ -39,7 +39,7 @@ const Payments = () => {
   const fetchPayments = async () => {
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:8080/api/payments', {
+      const response = await fetch('http://localhost:8081/api/payments', {
         headers: getAuthHeaders()
       });
       if (response.ok) {

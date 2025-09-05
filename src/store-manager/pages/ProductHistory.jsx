@@ -22,7 +22,7 @@ const ProductHistory = () => {
     
     try {
       // Fetch orders related to this product
-      const response = await fetch(`http://localhost:8080/api/orders?productId=${productId}`, {
+      const response = await fetch(`http://localhost:8081/api/orders?productId=${productId}`, {
         headers: getAuthHeaders()
       });
       

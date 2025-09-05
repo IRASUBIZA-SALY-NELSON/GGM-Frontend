@@ -22,7 +22,7 @@ const Billing = () => {
     setLoading(true);
     
     try {
-      const response = await fetch('http://localhost:8080/api/invoices', {
+      const response = await fetch('http://localhost:8081/api/invoices', {
         headers: getAuthHeaders()
       });
       

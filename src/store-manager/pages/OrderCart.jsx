@@ -77,7 +77,7 @@ const OrderCart = () => {
         status: 'PENDING'
       };
 
-      const response = await fetch('http://localhost:8080/api/orders', {
+      const response = await fetch('http://localhost:8081/api/orders', {
         method: 'POST',
         headers: getAuthHeaders(),
         body: JSON.stringify(orderData)

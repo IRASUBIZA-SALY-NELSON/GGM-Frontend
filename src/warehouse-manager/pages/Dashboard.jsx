@@ -42,7 +42,7 @@ const WarehouseManagerDashboard = () => {
     
     try {
       // Fetch orders for processing queue and stats
-      const ordersResponse = await fetch('http://localhost:8080/api/orders', {
+      const ordersResponse = await fetch('http://localhost:8081/api/orders', {
         headers: getAuthHeaders()
       });
       
@@ -66,7 +66,7 @@ const WarehouseManagerDashboard = () => {
         // Fetch inventory for low stock alerts
         let lowStockCount = 0;
         try {
-          const inventoryResponse = await fetch('http://localhost:8080/api/inventories', {
+          const inventoryResponse = await fetch('http://localhost:8081/api/inventories', {
             headers: getAuthHeaders()
           });
           

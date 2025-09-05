@@ -38,7 +38,7 @@ const Invoices = () => {
   const fetchInvoices = async () => {
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:8080/api/invoices', {
+      const response = await fetch('http://localhost:8081/api/invoices', {
         headers: getAuthHeaders()
       });
       if (response.ok) {
@@ -71,7 +71,7 @@ const Invoices = () => {
   // Send reminder for invoice
   const handleSendReminder = async (invoiceId) => {
     try {
-      const response = await fetch(`http://localhost:8080/api/invoices/${invoiceId}/reminder`, {
+      const response = await fetch(`http://localhost:8081/api/invoices/${invoiceId}/reminder`, {
         method: 'POST',
         headers: getAuthHeaders()
       });

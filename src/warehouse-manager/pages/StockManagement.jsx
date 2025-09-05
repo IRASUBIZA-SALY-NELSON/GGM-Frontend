@@ -28,7 +28,7 @@ const StockManagement = () => {
     setLoading(true);
     
     try {
-      const response = await fetch('http://localhost:8080/api/inventories', {
+      const response = await fetch('http://localhost:8081/api/inventories', {
         headers: getAuthHeaders()
       });
       
@@ -62,7 +62,7 @@ const StockManagement = () => {
 
   const updateStock = async (productId, newStock) => {
     try {
-      const response = await fetch(`http://localhost:8080/api/inventories/${productId}`, {
+      const response = await fetch(`http://localhost:8081/api/inventories/${productId}`, {
         method: 'PUT',
         headers: getAuthHeaders(),
         body: JSON.stringify({ currentStock: newStock })

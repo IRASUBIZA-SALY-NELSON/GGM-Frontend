@@ -27,7 +27,7 @@ const PlaceOrder = () => {
     setLoading(true);
     
     try {
-      const response = await fetch('http://localhost:8080/api/products', {
+      const response = await fetch('http://localhost:8081/api/products', {
         headers: getAuthHeaders()
       });
       
@@ -39,10 +39,10 @@ const PlaceOrder = () => {
           id: item.id,
           name: item.name || item.productName || 'Unknown Product',
           category: item.category || 'Uncategorized',
-          currentStock: item.stock || item.currentStock || 0,
+          currentStock: item.unit || 0,
           unitPrice: item.price || item.unitPrice || 0,
           image: item.imageUrl || item.image || '1.png',
-          status: (item.stock || item.currentStock || 0) > 0 ? 'Active' : 'Out of Stock',
+          status: (item.unit || 0) > 0 ? 'Active' : 'Out of Stock',
           description: item.description || ''
         }));
         
@@ -157,8 +157,8 @@ const PlaceOrder = () => {
             No products available for ordering
           </div>
         ) : (
-          products.map((product) => (
-          <div key={product.id} className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+          products.map((product, index) => (
+          <div key={product.sku || product.id || index} className="bg-white rounded-lg border border-gray-200 overflow-hidden">
             <div className="relative">
               <div className="w-full h-48 bg-gray-100 flex items-center justify-center overflow-hidden">
                 <img 

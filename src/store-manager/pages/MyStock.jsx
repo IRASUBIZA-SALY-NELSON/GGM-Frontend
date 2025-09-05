@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Search, Filter, ShoppingCart, MoreVertical, Package, Eye } from 'lucide-react'
+import { API_ENDPOINTS, apiCall, HTTP_METHODS } from '../../config/api'
 import SpecifyQuantityModal from '../modals/SpecifyQuantityModal'
 import RemoveProductModal from '../modals/RemoveProductModal'
 import UpdateQuantityModal from '../modals/UpdateQuantityModal'
@@ -17,44 +18,51 @@ const MyStock = () => {
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
 
-  const getAuthHeaders = () => {
-    const token = localStorage.getItem('accessToken');
-    return {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    };
-  };
-
   const fetchProducts = async () => {
     setLoading(true);
     
     try {
-      const response = await fetch('http://localhost:8080/api/inventories', {
-        headers: getAuthHeaders()
-      });
+      const products = await apiCall(API_ENDPOINTS.PRODUCTS);
       
-      if (response.ok) {
-        const inventory = await response.json();
+      // Process products data for display
+      const processedProducts = products.map(item => {
+        const currentStock = item.unit || 0;
+        const minStockLevel = 5; // Default minimum stock level
         
-        // Process inventory data for display
-        const processedProducts = inventory.map(item => ({
-          id: item.id,
-          name: item.productName || item.name || 'Unknown Product',
+        let status;
+        if (currentStock === 0) {
+          status = 'Out of Stock';
+        } else if (currentStock <= minStockLevel) {
+          status = 'Low Stock';
+        } else {
+          status = 'Active';
+        }
+        
+        return {
+          id: item.sku, // Use SKU as unique identifier
+          sku: item.sku,
+          name: item.name || 'Unknown Product',
+          description: item.description || '',
           category: item.category || 'Uncategorized',
-          currentStock: item.currentStock || 0,
-          unitPrice: item.unitPrice || 0,
-          image: item.imageUrl || '1.png',
-          status: item.currentStock > (item.minStockLevel || 10) ? 'Active' : 'Low Stock',
-          minStockLevel: item.minStockLevel || 10
-        }));
+          currentStock: currentStock,
+          unitPrice: item.price || 0,
+          image: '1.png', // Default static image
+          status: status,
+          minStockLevel: minStockLevel,
+          isActive: item.isActive || false,
+          barcode: item.barcode,
+          weight: item.weight,
+          size: item.size,
+          code: item.code,
+          attributes: item.attributes || {},
+          deleted: item.deleted || false
+        };
+      });
         
         setProducts(processedProducts);
-      } else {
-        console.warn('Failed to fetch inventory:', response.statusText);
-        setProducts([]);
-      }
+        console.log('✅ Products fetched successfully:', processedProducts);
     } catch (error) {
-      console.warn('Error fetching inventory:', error);
+      console.error('❌ Error fetching products:', error);
       setProducts([]);
     } finally {
       setLoading(false);
@@ -78,6 +86,28 @@ const MyStock = () => {
   const handleUpdateQuantity = (product) => {
     setSelectedProduct(product)
     setShowUpdateModal(true)
+  }
+
+  const handleQuantityUpdate = async (productSku, newQuantity, reason = 'Manual adjustment') => {
+    try {
+      // Update product quantity directly in products table using SKU
+      const updateData = {
+        unit: newQuantity  // Update the unit field which represents quantity
+      };
+
+      await apiCall(API_ENDPOINTS.PRODUCT_BY_ID(productSku), {
+        method: HTTP_METHODS.PUT,
+        body: JSON.stringify(updateData)
+      });
+
+      // Refresh products data
+      fetchProducts();
+      setShowUpdateModal(false);
+      console.log('✅ Product quantity updated successfully');
+    } catch (error) {
+      console.error('❌ Error updating product quantity:', error);
+      alert('Failed to update quantity: ' + error.message);
+    }
   }
 
   const handleAddToCart = (product, quantity) => {
@@ -161,8 +191,8 @@ const MyStock = () => {
             No products found in inventory
           </div>
         ) : (
-          products.map((product) => (
-          <div key={product.id} className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+          products.map((product, index) => (
+          <div key={product.id || `product-${index}`} className="bg-white rounded-lg border border-gray-200 overflow-hidden">
             <div className="relative">
               <div className="w-full h-48 bg-gray-100 flex items-center justify-center overflow-hidden">
                 <img 
@@ -172,7 +202,8 @@ const MyStock = () => {
                 />
               </div>
               <span className={`absolute top-2 left-2 text-white text-xs px-2 py-1 rounded ${
-                product.status === 'Active' ? 'bg-green-500' : 'bg-red-500'
+                product.status === 'Active' ? 'bg-green-500' : 
+                product.status === 'Low Stock' ? 'bg-yellow-500' : 'bg-red-500'
               }`}>
                 {product.status}
               </span>
@@ -196,38 +227,50 @@ const MyStock = () => {
                 </div>
               </div>
               
-              <div className="relative">
+              <div className="space-y-2">
+                {/* Primary Record Quantity Button */}
                 <button 
-                  onClick={() => toggleProductActions(product.id)}
-                  className="w-full bg-purple-600 text-white py-2 px-4 rounded-lg hover:bg-purple-700 transition-colors flex items-center justify-center space-x-2"
+                  onClick={() => handleUpdateQuantity(product)}
+                  className="w-full bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center space-x-2"
                 >
-                  <span>Actions</span>
-                  <MoreVertical className="w-4 h-4" />
+                  <Package className="w-4 h-4" />
+                  <span>Record Quantity</span>
                 </button>
                 
-                {showProductActions === product.id && (
-                  <div className="absolute bottom-full mb-2 left-0 right-0 bg-white rounded-lg shadow-lg border border-gray-200 z-10">
-                    <div className="py-2">
-                      <button 
-                        onClick={() => {
-                          handleReorderClick(product)
-                          setShowProductActions(null)
-                        }}
-                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-2"
-                      >
-                        <Package className="w-4 h-4" />
-                        <span>Reorder</span>
-                      </button>
-                      <button 
-                        onClick={() => handleViewHistory(product)}
-                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-2"
-                      >
-                        <Eye className="w-4 h-4" />
-                        <span>View History</span>
-                      </button>
+                {/* Secondary Actions Button */}
+                <div className="relative">
+                  <button 
+                    onClick={() => toggleProductActions(product.id)}
+                    className="w-full bg-purple-600 text-white py-2 px-4 rounded-lg hover:bg-purple-700 transition-colors flex items-center justify-center space-x-2"
+                  >
+                    <span>More Actions</span>
+                    <MoreVertical className="w-4 h-4" />
+                  </button>
+                
+                  {showProductActions === product.id && (
+                    <div className="absolute bottom-full mb-2 left-0 right-0 bg-white rounded-lg shadow-lg border border-gray-200 z-10">
+                      <div className="py-2">
+                        <button 
+                          onClick={() => {
+                            handleReorderClick(product)
+                            setShowProductActions(null)
+                          }}
+                          className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-2"
+                        >
+                          <Package className="w-4 h-4" />
+                          <span>Reorder</span>
+                        </button>
+                        <button 
+                          onClick={() => handleViewHistory(product)}
+                          className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-2"
+                        >
+                          <Eye className="w-4 h-4" />
+                          <span>View History</span>
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
             </div>
           </div>

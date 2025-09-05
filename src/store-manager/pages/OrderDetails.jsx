@@ -20,7 +20,7 @@ const OrderDetails = () => {
     setLoading(true);
     
     try {
-      const response = await fetch(`http://localhost:8080/api/orders/${orderId}`, {
+      const response = await fetch(`http://localhost:8081/api/orders/${orderId}`, {
         headers: getAuthHeaders()
       });
       

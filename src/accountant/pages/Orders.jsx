@@ -23,8 +23,8 @@ const Orders = () => {
     setLoading(true);
     try {
       const [ordersResponse, invoicesResponse] = await Promise.all([
-        fetch('http://localhost:8080/api/orders', { headers: getAuthHeaders() }),
-        fetch('http://localhost:8080/api/invoices', { headers: getAuthHeaders() })
+        fetch('http://localhost:8081/api/orders', { headers: getAuthHeaders() }),
+        fetch('http://localhost:8081/api/invoices', { headers: getAuthHeaders() })
       ]);
       
       if (ordersResponse.ok) {

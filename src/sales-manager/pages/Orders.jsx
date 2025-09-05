@@ -32,7 +32,7 @@ const Orders = () => {
     setLoading(true);
     
     try {
-      const response = await fetch('http://localhost:8080/api/orders', {
+      const response = await fetch('http://localhost:8081/api/orders', {
         headers: getAuthHeaders()
       });
       
@@ -85,7 +85,7 @@ const Orders = () => {
     if (!selectedOrder) return;
     
     try {
-      const response = await fetch(`http://localhost:8080/api/orders/${selectedOrder.id}/approve`, {
+      const response = await fetch(`http://localhost:8081/api/orders/${selectedOrder.id}/approve`, {
         method: 'PUT',
         headers: getAuthHeaders()
       });
@@ -110,7 +110,7 @@ const Orders = () => {
     if (!selectedOrder) return;
     
     try {
-      const response = await fetch(`http://localhost:8080/api/orders/${selectedOrder.id}/reject`, {
+      const response = await fetch(`http://localhost:8081/api/orders/${selectedOrder.id}/reject`, {
         method: 'PUT',
         headers: getAuthHeaders()
       });

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Search, Bell, ChevronDown, ArrowLeft, Upload, Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { API_ENDPOINTS, apiCall, HTTP_METHODS } from '../../config/api';
 
 const AddNewProduct = () => {
   const navigate = useNavigate();
@@ -17,8 +18,10 @@ const AddNewProduct = () => {
     beginningQuantity: '',
     minimumQuantity: '',
     unitCost: '',
-    productStatus: ''
+    productStatus: 'ACTIVE'
   });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -28,9 +31,39 @@ const AddNewProduct = () => {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setShowSuccessModal(true);
+    setLoading(true);
+    setError(null);
+    
+    try {
+      // Get current user's tenant from localStorage
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      
+      const productData = {
+        sku: `SKU-${Date.now()}`, // Generate unique SKU
+        name: formData.productName,
+        description: formData.productDescription,
+        category: formData.productCategory || 'CASUAL_PANTS', // Default to valid enum value
+        unit: parseInt(formData.beginningQuantity) || 0, // Use beginning quantity from form
+        price: parseFloat(formData.unitCost) || 0,
+        isActive: formData.productStatus === 'ACTIVE'
+        // Omit tenant since it's now nullable
+      };
+
+      const newProduct = await apiCall(API_ENDPOINTS.PRODUCTS, {
+        method: HTTP_METHODS.POST,
+        body: JSON.stringify(productData)
+      });
+
+      console.log('✅ Product created successfully:', newProduct);
+      setShowSuccessModal(true);
+    } catch (error) {
+      console.error('❌ Error creating product:', error);
+      setError(error.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSaveProduct = () => {
@@ -201,10 +234,9 @@ const AddNewProduct = () => {
                   className="w-full px-3 py-2 border border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                   required
                 >
-                  <option value="">Casual Wear</option>
-                  <option value="casual-wear">Casual Wear</option>
-                  <option value="formal-wear">Formal Wear</option>
-                  <option value="sportswear">Sportswear</option>
+                  <option value="">Select Category</option>
+                  <option value="ACTIVEWEAR_PANTS">Activewear Pants</option>
+                  <option value="CASUAL_PANTS">Casual Pants</option>
                 </select>
               </div>
 

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Bell, ChevronDown, Filter, Plus, MoreVertical, Trash2, Edit } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { API_ENDPOINTS, apiCall, HTTP_METHODS } from '../../config/api';
 
 const PricingCatalog = () => {
   const navigate = useNavigate();
@@ -14,14 +15,6 @@ const PricingCatalog = () => {
   const [productsData, setProductsData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-
-  const getAuthHeaders = () => {
-    const token = localStorage.getItem('accessToken');
-    return {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    };
-  };
 
   const getStatusColor = (status) => {
     switch (status?.toLowerCase()) {
@@ -37,17 +30,12 @@ const PricingCatalog = () => {
     setLoading(true);
     
     try {
-      const response = await fetch('http://localhost:8080/api/products', {
-        headers: getAuthHeaders()
-      });
+      const products = await apiCall(API_ENDPOINTS.PRODUCTS);
       
-      if (response.ok) {
-        const products = await response.json();
-        
-        const processedProducts = products.map(product => {
-          const stock = product.stock || product.quantity || 0;
-          let status = 'Active';
-          if (stock === 0) status = 'Out of Stock';
+      const processedProducts = products.map(product => {
+        const stock = product.unit || 0;
+        let status = 'Active';
+        if (stock === 0) status = 'Out of Stock';
           else if (stock < 10) status = 'Low Stock';
           else if (product.onSale) status = 'On Sale';
           else if (stock > 0) status = 'In Stock';
@@ -65,12 +53,9 @@ const PricingCatalog = () => {
         });
         
         setProductsData(processedProducts);
-      } else {
-        console.warn('Failed to fetch products:', response.statusText);
-        setProductsData([]);
-      }
+        console.log('✅ Products fetched successfully:', processedProducts);
     } catch (error) {
-      console.warn('Error fetching products:', error);
+      console.error('❌ Error fetching products:', error);
       setProductsData([]);
     } finally {
       setLoading(false);
@@ -95,21 +80,16 @@ const PricingCatalog = () => {
     if (!selectedProduct) return;
     
     try {
-      const response = await fetch(`http://localhost:8080/api/products/${selectedProduct.id}`, {
-        method: 'DELETE',
-        headers: getAuthHeaders()
+      await apiCall(API_ENDPOINTS.PRODUCT_BY_ID(selectedProduct.id), {
+        method: HTTP_METHODS.DELETE
       });
       
-      if (response.ok) {
-        // Refresh products list
-        fetchProducts();
-      } else {
-        console.error('Failed to delete product');
-        alert('Failed to delete product. Please try again.');
-      }
+      // Refresh products list
+      fetchProducts();
+      console.log('✅ Product deleted successfully');
     } catch (error) {
-      console.error('Error deleting product:', error);
-      alert('Error deleting product. Please try again.');
+      console.error('❌ Error deleting product:', error);
+      alert('Error deleting product: ' + error.message);
     }
     
     setShowDeleteModal(false);
@@ -120,7 +100,7 @@ const PricingCatalog = () => {
     if (!newUnit.trim()) return;
     
     try {
-      const response = await fetch('http://localhost:8080/api/units', {
+      const response = await fetch('http://localhost:8081/api/units', {
         method: 'POST',
         headers: getAuthHeaders(),
         body: JSON.stringify({ name: newUnit.trim() })
@@ -144,7 +124,7 @@ const PricingCatalog = () => {
     if (!newCategory.trim()) return;
     
     try {
-      const response = await fetch('http://localhost:8080/api/categories', {
+      const response = await fetch('http://localhost:8081/api/categories', {
         method: 'POST',
         headers: getAuthHeaders(),
         body: JSON.stringify({ name: newCategory.trim() })
@@ -281,8 +261,8 @@ const PricingCatalog = () => {
               product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
               product.category.toLowerCase().includes(searchTerm.toLowerCase())
             )
-            .map((product) => (
-          <div key={product.id} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+            .map((product, index) => (
+          <div key={product.sku || product.id || index} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-visible">
             <div className="relative">
               <img 
                 src={product.image} 
@@ -330,7 +310,7 @@ const PricingCatalog = () => {
                   </button>
                   
                   {showActionsDropdown === product.id && (
-                    <div className="absolute right-0 top-full mt-1 w-32 bg-white border border-gray-200 rounded-lg shadow-lg z-10">
+                    <div className="absolute right-0 top-full mt-1 w-32 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
                       <button
                         onClick={() => handleDeleteProduct(product)}
                         className="w-full text-left px-3 py-2 hover:bg-gray-50 text-red-600 text-sm"

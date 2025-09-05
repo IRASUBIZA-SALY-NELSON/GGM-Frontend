@@ -39,6 +39,7 @@ import DistributorDetails from './sales-manager/pages/DistributorDetails';
 import OnboardDistributor from './sales-manager/pages/OnboardDistributor';
 import PricingCatalog from './sales-manager/pages/PricingCatalog';
 import AddNewProduct from './sales-manager/pages/AddNewProduct';
+import PriceManagement from './sales-manager/pages/PriceManagement';
 import SalesAnalytics from './sales-manager/pages/SalesAnalytics';
 import SalesManagerLayout from './sales-manager/components/SalesManagerLayout';
 
@@ -59,6 +60,12 @@ import AccountantInvoices from './accountant/pages/Invoices';
 import AccountantOrders from './accountant/pages/Orders';
 import AccountantOrderDetails from './accountant/pages/OrderDetails';
 import AccountantLayout from './accountant/components/AccountantLayout';
+
+// Distributor Components
+import DistributorDashboard from './distributor/pages/Dashboard';
+import DistributorPlaceOrder from './distributor/pages/PlaceOrder';
+import DistributorLayout from './distributor/components/DistributorLayout';
+
 import NotFound from './pages/NotFound'
 import RoleBasedRedirect from './components/RoleBasedRedirect'
 
@@ -402,6 +409,26 @@ function App() {
             </ProtectedRoute>
           } 
         />
+        <Route 
+          path="/sales-manager/price-management" 
+          element={
+            <ProtectedRoute>
+              <SalesManagerLayout>
+                <PriceManagement />
+              </SalesManagerLayout>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/sales-manager/analytics" 
+          element={
+            <ProtectedRoute>
+              <SalesManagerLayout>
+                <SalesAnalytics />
+              </SalesManagerLayout>
+            </ProtectedRoute>
+          } 
+        />
 
 
         {/* Sales Assistant Routes */}
@@ -474,6 +501,10 @@ function App() {
         <Route path="/accountant/orders" element={<ProtectedRoute><AccountantLayout><AccountantOrders /></AccountantLayout></ProtectedRoute>} />
         <Route path="/accountant/orders/:orderId" element={<ProtectedRoute><AccountantLayout><AccountantOrderDetails /></AccountantLayout></ProtectedRoute>} />
         <Route path="/accountant/sales-analytics" element={<ProtectedRoute><AccountantLayout><SalesAnalytics /></AccountantLayout></ProtectedRoute>} />
+        
+        {/* Distributor Routes */}
+        <Route path="/distributor/dashboard" element={<ProtectedRoute><DistributorLayout><DistributorDashboard /></DistributorLayout></ProtectedRoute>} />
+        <Route path="/distributor/place-order" element={<ProtectedRoute><DistributorLayout><DistributorPlaceOrder /></DistributorLayout></ProtectedRoute>} />
         
         {/* Warehouse Manager Routes */}
         <Route path="/warehouse-manager/dashboard" element={<ProtectedRoute><WarehouseManagerLayout><WarehouseManagerDashboard /></WarehouseManagerLayout></ProtectedRoute>} />

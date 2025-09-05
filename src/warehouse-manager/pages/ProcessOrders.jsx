@@ -55,7 +55,7 @@ const ProcessOrders = () => {
     setLoading(true);
     
     try {
-      const response = await fetch('http://localhost:8080/api/orders', {
+      const response = await fetch('http://localhost:8081/api/orders', {
         headers: getAuthHeaders()
       });
       
@@ -95,7 +95,7 @@ const ProcessOrders = () => {
 
   const updateOrderStatus = async (orderId, newStatus) => {
     try {
-      const response = await fetch(`http://localhost:8080/api/orders/${orderId}/status`, {
+      const response = await fetch(`http://localhost:8081/api/orders/${orderId}/status`, {
         method: 'PUT',
         headers: getAuthHeaders(),
         body: JSON.stringify({ status: newStatus })

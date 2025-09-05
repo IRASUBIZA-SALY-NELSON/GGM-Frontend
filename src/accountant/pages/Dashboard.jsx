@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Bell, ChevronDown, Eye, FileText, Filter } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { API_ENDPOINTS, apiCall } from '../../config/api';
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -16,15 +17,6 @@ const Dashboard = () => {
     outstandingReceivables: 0
   });
   const [chartData, setChartData] = useState([]);
-
-  // Helper function to get authentication headers
-  const getAuthHeaders = () => {
-    const token = localStorage.getItem('accessToken');
-    return {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    };
-  };
 
   // Helper function to get status color
   const getStatusColor = (status) => {
@@ -47,93 +39,60 @@ const Dashboard = () => {
   const fetchDashboardData = async () => {
     setLoading(true);
     try {
-      const [ordersResponse, invoicesResponse, paymentsResponse] = await Promise.all([
-        fetch('http://localhost:8080/api/orders', { headers: getAuthHeaders() }),
-        fetch('http://localhost:8080/api/invoices', { headers: getAuthHeaders() }),
-        fetch('http://localhost:8080/api/payments', { headers: getAuthHeaders() })
+      const [orders, invoices, payments] = await Promise.all([
+        apiCall(API_ENDPOINTS.ORDERS),
+        apiCall(API_ENDPOINTS.INVOICES),
+        apiCall(API_ENDPOINTS.PAYMENTS)
       ]);
 
-      if (ordersResponse.ok && invoicesResponse.ok) {
-        const orders = await ordersResponse.json();
-        const invoices = await invoicesResponse.json();
-        const payments = paymentsResponse.ok ? await paymentsResponse.json() : [];
+      // Process orders for validation
+      const pendingOrders = orders.filter(order => order.status === 'PENDING');
+      setOrdersToValidate(pendingOrders.slice(0, 5).map(order => ({
+        id: order.id,
+        orderNumber: order.orderNumber || `ORD-${order.id}`,
+        customer: order.customerName || order.customer || 'Unknown Customer',
+        amount: `${(order.totalAmount || 0).toLocaleString()} RWF`,
+        date: order.orderDate ? new Date(order.orderDate).toLocaleDateString() : 
+              order.createdAt ? new Date(order.createdAt).toLocaleDateString() : 'N/A',
+        status: order.status || 'PENDING'
+      })));
 
-        // Process orders to validate (pending orders)
-        const pendingOrders = orders.filter(order => order.status === 'PENDING' || order.status === 'Pending');
-        const processedOrders = pendingOrders.slice(0, 3).map(order => ({
-          id: order.id,
-          distributorName: order.customerName || order.distributorName || 'Unknown Distributor',
-          distributorAvatar: '/distributor.png',
-          salesAssistantName: order.salesAssistant || order.createdBy || 'Unknown Sales Assistant',
-          salesAssistantAvatar: '/distributor.png',
-          orderValue: `${(order.totalAmount || order.amount || 0).toLocaleString()}rwf`,
-          status: order.status || 'Pending',
-          statusColor: getStatusColor(order.status)
-        }));
-        setOrdersToValidate(processedOrders);
+      // Process overdue invoices
+      const currentDate = new Date();
+      const overdue = invoices.filter(invoice => {
+        const dueDate = new Date(invoice.dueDate);
+        return dueDate < currentDate && invoice.status !== 'PAID';
+      });
+      
+      setOverdueInvoices(overdue.slice(0, 5).map(invoice => ({
+        id: invoice.id,
+        invoiceNumber: invoice.invoiceNumber || `INV-${invoice.id}`,
+        customer: invoice.customerName || invoice.customer || 'Unknown Customer',
+        amount: `${(invoice.totalAmount || invoice.amount || 0).toLocaleString()} RWF`,
+        dueDate: invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString() : 'N/A',
+        overdueDate: invoice.dueDate ? 
+          Math.floor((currentDate - new Date(invoice.dueDate)) / (1000 * 60 * 60 * 24)) + ' days' : 
+          'N/A'
+      })));
 
-        // Process overdue invoices
-        const currentDate = new Date();
-        const overdue = invoices.filter(invoice => {
-          const dueDate = new Date(invoice.dueDate || invoice.paymentDue);
-          return dueDate < currentDate && (invoice.status === 'PENDING' || invoice.status === 'Pending');
-        });
-        const processedOverdueInvoices = overdue.slice(0, 3).map(invoice => ({
-          id: invoice.id,
-          invoiceId: invoice.invoiceNumber || invoice.id,
-          distributorName: invoice.customerName || invoice.distributorName || 'Unknown Distributor',
-          distributorAvatar: '/distributor.png',
-          invoiceAmount: `${(invoice.totalAmount || invoice.amount || 0).toLocaleString()}rwf`,
-          status: invoice.status || 'Pending',
-          statusColor: getStatusColor('overdue'),
-          dueDate: new Date(invoice.dueDate || invoice.paymentDue).toLocaleDateString(),
-          overdueDate: new Date().toLocaleDateString()
-        }));
-        setOverdueInvoices(processedOverdueInvoices);
+      // Calculate dashboard stats
+      const totalRevenue = payments.reduce((sum, payment) => sum + (parseFloat(payment.amount) || 0), 0);
+      const pendingOrdersCount = pendingOrders.length;
+      const overdueInvoicesCount = overdue.length;
+      const outstandingReceivables = invoices
+        .filter(invoice => invoice.status !== 'PAID')
+        .reduce((sum, invoice) => sum + (parseFloat(invoice.totalAmount || invoice.amount) || 0), 0);
 
-        // Calculate dashboard stats
-        const totalRevenue = orders.reduce((sum, order) => sum + (order.totalAmount || 0), 0);
-        const totalPayments = payments.reduce((sum, payment) => sum + (payment.amount || 0), 0);
-        const cashFlow = totalRevenue - totalPayments;
-        const pendingOrdersCount = pendingOrders.length;
-        const overdueInvoicesCount = overdue.length;
-        const outstandingReceivables = invoices
-          .filter(inv => inv.status === 'PENDING' || inv.status === 'Pending')
-          .reduce((sum, inv) => sum + (inv.totalAmount || inv.amount || 0), 0);
+      setDashboardStats({
+        cashFlow: totalRevenue,
+        pendingOrders: pendingOrdersCount,
+        overdueInvoices: overdueInvoicesCount,
+        outstandingReceivables
+      });
 
-        setDashboardStats({
-          cashFlow: Math.round(cashFlow / 1000000), // Convert to millions
-          pendingOrders: pendingOrdersCount,
-          overdueInvoices: overdueInvoicesCount,
-          outstandingReceivables: Math.round(outstandingReceivables / 1000000) // Convert to millions
-        });
-
-        // Generate chart data for outstanding invoices by age
-        const ageRanges = [
-          { label: '0-15 Days', min: 0, max: 15 },
-          { label: '16-30 Days', min: 16, max: 30 },
-          { label: '31-60 Days', min: 31, max: 60 },
-          { label: '61-90 Days', min: 61, max: 90 },
-          { label: '90+ Days', min: 91, max: Infinity }
-        ];
-
-        const chartDataProcessed = ageRanges.map(range => {
-          const invoicesInRange = invoices.filter(invoice => {
-            const daysDiff = Math.floor((currentDate - new Date(invoice.dueDate || invoice.paymentDue)) / (1000 * 60 * 60 * 24));
-            return daysDiff >= range.min && daysDiff <= range.max;
-          });
-          const percentage = invoices.length > 0 ? (invoicesInRange.length / invoices.length) * 100 : 0;
-          return { percentage: Math.round(percentage), label: range.label };
-        });
-        setChartData(chartDataProcessed);
-      } else {
-        setOrdersToValidate([]);
-        setOverdueInvoices([]);
-      }
+      console.log('✅ Accountant dashboard data fetched successfully');
     } catch (error) {
-      console.error('Error fetching dashboard data:', error);
-      setOrdersToValidate([]);
-      setOverdueInvoices([]);
+      console.error('❌ Error fetching accountant dashboard data:', error);
     } finally {
       setLoading(false);
     }
@@ -142,28 +101,27 @@ const Dashboard = () => {
   // Handle order approval
   const handleApproveOrder = async (orderId) => {
     try {
-      const response = await fetch(`http://localhost:8080/api/orders/${orderId}/approve`, {
-        method: 'PUT',
-        headers: getAuthHeaders()
+      await apiCall(API_ENDPOINTS.ORDER_APPROVE(orderId), {
+        method: 'PUT'
       });
-      if (response.ok) {
-        fetchDashboardData(); // Refresh data
-      }
+      fetchDashboardData(); // Refresh data
+      console.log('✅ Order approved successfully');
     } catch (error) {
-      console.error('Error approving order:', error);
+      console.error('❌ Error approving order:', error);
+      alert('Failed to approve order: ' + error.message);
     }
   };
 
   // Filter orders based on search term
   const filteredOrders = ordersToValidate.filter(order =>
-    order.distributorName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    order.salesAssistantName.toLowerCase().includes(searchTerm.toLowerCase())
+    order.customer.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    order.orderNumber.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   // Filter invoices based on search term
   const filteredInvoices = overdueInvoices.filter(invoice =>
-    invoice.distributorName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    invoice.invoiceId.toString().includes(searchTerm.toLowerCase())
+    invoice.customer.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    invoice.invoiceNumber.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   useEffect(() => {

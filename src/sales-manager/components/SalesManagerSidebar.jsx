@@ -38,6 +38,11 @@ const SalesManagerSidebar = () => {
       icon: Tag,
     },
     {
+      name: 'Price Management',
+      href: '/sales-manager/price-management',
+      icon: Tag,
+    },
+    {
       name: 'Sales Analytics',
       href: '/sales-manager/sales-analytics',
       icon: BarChart3,

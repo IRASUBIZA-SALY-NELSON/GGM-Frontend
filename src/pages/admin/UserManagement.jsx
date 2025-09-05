@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
 import { Search, Filter, ChevronDown, MoreHorizontal, Plus, Eye, Edit, Trash2 } from 'lucide-react'
+import { API_ENDPOINTS, apiCall, HTTP_METHODS } from '../../config/api'
 import AddUserModal from '../../components/modals/AddUserModal'
 import UserSuccessModal from '../../components/modals/UserSuccessModal'
 import DeleteUserModal from '../../components/modals/DeleteUserModal'
@@ -35,31 +36,63 @@ const UserManagement = () => {
 
   const fetchUsers = async () => {
     try {
-      const token = localStorage.getItem('accessToken')
-      if (!token) {
-        throw new Error('No authentication token found')
-      }
-      
-      const response = await fetch('http://localhost:8081/api/users', {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      })
-
-      if (response.ok) {
-        const userData = await response.json()
-        setUsers(userData)
-        console.log('📊 Users fetched for User Management:', userData)
-      } else {
-        throw new Error('Failed to fetch users')
-      }
+      setLoading(true)
+      setError(null)
+      const userData = await apiCall(API_ENDPOINTS.USERS)
+      setUsers(userData || [])
+      console.log('📊 Users fetched for User Management:', userData)
     } catch (error) {
       console.error('❌ Error fetching users:', error)
       setError(error.message)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleAddUser = async (userData) => {
+    try {
+      const newUser = await apiCall(API_ENDPOINTS.USERS, {
+        method: HTTP_METHODS.POST,
+        body: JSON.stringify(userData)
+      })
+      setUsers(prev => [...prev, newUser])
+      setShowAddModal(false)
+      setShowSuccessModal(true)
+      console.log('✅ User added successfully:', newUser)
+    } catch (error) {
+      console.error('❌ Error adding user:', error)
+      alert('Failed to add user: ' + error.message)
+    }
+  }
+
+  const handleEditUser = async (userId, userData) => {
+    try {
+      const updatedUser = await apiCall(API_ENDPOINTS.USER_BY_ID(userId), {
+        method: HTTP_METHODS.PUT,
+        body: JSON.stringify(userData)
+      })
+      setUsers(prev => prev.map(user => user.id === userId ? updatedUser : user))
+      setShowEditModal(false)
+      setShowSuccessModal(true)
+      console.log('✅ User updated successfully:', updatedUser)
+    } catch (error) {
+      console.error('❌ Error updating user:', error)
+      alert('Failed to update user: ' + error.message)
+    }
+  }
+
+  const handleDeleteUser = async (userId) => {
+    try {
+      await apiCall(API_ENDPOINTS.USER_BY_ID(userId), {
+        method: HTTP_METHODS.DELETE
+      })
+      setUsers(prev => prev.filter(user => user.id !== userId))
+      setShowDeleteModal(false)
+      setUserToDelete(null)
+      console.log('✅ User deleted successfully')
+    } catch (error) {
+      console.error('❌ Error deleting user:', error)
+      alert('Failed to delete user: ' + error.message)
     }
   }
 
@@ -108,7 +141,7 @@ const UserManagement = () => {
     setShowActionsDropdown(showActionsDropdown === userId ? null : userId)
   }
 
-  const handleAddUser = () => {
+  const handleAddUserModal = () => {
     setShowAddModal(true)
   }
 
@@ -125,30 +158,22 @@ const UserManagement = () => {
     setShowActionsDropdown(null)
   }
 
-  const handleEditUser = (user) => {
+  const handleEditUserModal = (user) => {
     setSelectedUser(user)
     setShowEditModal(true)
     setShowActionsDropdown(null)
   }
 
-  const handleDeleteUser = (user) => {
+  const handleDeleteUserModal = (user) => {
     setUserToDelete(user)
     setShowDeleteModal(true)
     setShowActionsDropdown(null)
   }
 
   const confirmDeleteUser = () => {
-    // Here you would typically call API to delete user
-    console.log('Deleting user:', userToDelete)
-    setShowDeleteModal(false)
-    setUserToDelete(null)
-  }
-
-  const handleSaveUser = (userData) => {
-    // Here you would typically call API to save user
-    console.log('Saving user:', userData)
-    setShowEditModal(false)
-    setSelectedUser(null)
+    if (userToDelete) {
+      handleDeleteUser(userToDelete.id)
+    }
   }
 
   const handleFilter = () => {
@@ -192,14 +217,14 @@ const UserManagement = () => {
                   </button>
                   <button 
                     className="flex items-center space-x-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                    onClick={() => handleEditUser(users[0])}
+                    onClick={() => handleEditUserModal(users[0])}
                   >
                     <Edit className="h-4 w-4" />
                     <span>Edit Details</span>
                   </button>
                   <button 
                     className="flex items-center space-x-2 w-full px-4 py-2 text-sm text-red-600 hover:bg-gray-50"
-                    onClick={() => handleDeleteUser(users[0])}
+                    onClick={() => handleDeleteUserModal(users[0])}
                   >
                     <Trash2 className="h-4 w-4" />
                     <span>Delete</span>
@@ -226,7 +251,7 @@ const UserManagement = () => {
           <div className="flex items-center space-x-3">
             <button 
               className="flex items-center space-x-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
-              onClick={handleAddUser}
+              onClick={handleAddUserModal}
             >
               <Plus className="h-4 w-4" />
               <span>Add New User</span>
@@ -337,14 +362,14 @@ const UserManagement = () => {
                               </button>
                               <button 
                                 className="flex items-center space-x-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                                onClick={() => handleEditUser(user)}
+                                onClick={() => handleEditUserModal(user)}
                               >
                                 <Edit className="h-4 w-4" />
                                 <span>Edit Details</span>
                               </button>
                               <button 
                                 className="flex items-center space-x-2 w-full px-4 py-2 text-sm text-red-600 hover:bg-gray-50"
-                                onClick={() => handleDeleteUser(user)}
+                                onClick={() => handleDeleteUserModal(user)}
                               >
                                 <Trash2 className="h-4 w-4" />
                                 <span>Delete</span>
@@ -395,7 +420,7 @@ const UserManagement = () => {
       <AddUserModal 
         isOpen={showAddModal} 
         onClose={() => setShowAddModal(false)} 
-        onSuccess={handleUserSuccess}
+        onSuccess={handleAddUser}
       />
       
       <UserSuccessModal 
@@ -407,7 +432,7 @@ const UserManagement = () => {
         isOpen={showDeleteModal} 
         onClose={() => setShowDeleteModal(false)} 
         onConfirm={confirmDeleteUser}
-        userName={userToDelete?.name}
+        userName={userToDelete?.firstName + ' ' + userToDelete?.lastName}
       />
       
       <ViewUserModal 
@@ -424,7 +449,7 @@ const UserManagement = () => {
         isOpen={showEditModal} 
         onClose={() => setShowEditModal(false)} 
         user={selectedUser}
-        onSave={handleSaveUser}
+        onSave={(userData) => handleEditUser(selectedUser.id, userData)}
       />
       
       <FilterModal 
