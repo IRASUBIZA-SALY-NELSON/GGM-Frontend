@@ -22,7 +22,7 @@ const Billing = () => {
     setLoading(true);
     
     try {
-      const response = await fetch('http://localhost:8081/api/invoices', {
+      const response = await fetch('https://ggm-backend-h025.onrender.com/api/invoices', {
         headers: getAuthHeaders()
       });
       

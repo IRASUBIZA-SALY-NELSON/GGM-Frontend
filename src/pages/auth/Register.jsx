@@ -117,7 +117,7 @@ const Register = () => {
 
       console.log('📤 Sending API request:', apiData)
       
-      const response = await fetch('http://localhost:8081/api/auth/register', {
+      const response = await fetch('https://ggm-backend-h025.onrender.com/api/auth/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

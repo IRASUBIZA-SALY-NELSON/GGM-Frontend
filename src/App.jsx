@@ -1,6 +1,7 @@
 import React from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
+import { ThemeProvider } from './contexts/ThemeContext'
 import ProtectedRoute from './components/ProtectedRoute'
 import Layout from './components/Layout'
 import Dashboard from './pages/admin/Dashboard'
@@ -22,6 +23,7 @@ import PayInvoice from './store-manager/pages/PayInvoice'
 import PaymentHistory from './store-manager/pages/PaymentHistory'
 import BillingOrderDetails from './store-manager/pages/BillingOrderDetails'
 import PaymentReceipt from './store-manager/pages/PaymentReceipt'
+import StoreManagerSettings from './store-manager/pages/Settings'
 import StoreManagerLayout from './store-manager/components/StoreManagerLayout'
 import WarehouseManagerDashboard from './warehouse-manager/pages/Dashboard'
 import ProcessOrders from './warehouse-manager/pages/ProcessOrders'
@@ -59,11 +61,15 @@ import RecordPayment from './accountant/pages/RecordPayment';
 import AccountantInvoices from './accountant/pages/Invoices';
 import AccountantOrders from './accountant/pages/Orders';
 import AccountantOrderDetails from './accountant/pages/OrderDetails';
+import AccountantSettings from './accountant/pages/Settings';
 import AccountantLayout from './accountant/components/AccountantLayout';
 
 // Distributor Components
 import DistributorDashboard from './distributor/pages/Dashboard';
 import DistributorPlaceOrder from './distributor/pages/PlaceOrder';
+import DistributorOrders from './distributor/pages/Orders';
+import DistributorOrderDetails from './distributor/pages/OrderDetails';
+import DistributorInvoices from './distributor/pages/Invoices';
 import DistributorLayout from './distributor/components/DistributorLayout';
 
 import NotFound from './pages/NotFound'
@@ -84,7 +90,8 @@ import Success from './pages/auth/Success'
 function App() {
   return (
     <BrowserRouter>
-      <AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
         <Routes>
         {/* Public Routes */}
         <Route path="/auth/login" element={<Login />} />
@@ -98,7 +105,7 @@ function App() {
         <Route path="/auth/reset-password" element={<ResetPassword />} />
         <Route path="/auth/success" element={<Success />} />
         
-        {/* Protected Routes */}
+        {/* Root Route - Redirect to login for unauthorized users */}
         <Route path="/" element={<ProtectedRoute><RoleBasedRedirect /></ProtectedRoute>} />
         <Route path="/admin/dashboard" element={
           <ProtectedRoute>
@@ -291,6 +298,7 @@ function App() {
             </ProtectedRoute>
           } 
         />
+        <Route path="/store-manager/settings" element={<ProtectedRoute><StoreManagerLayout><StoreManagerSettings /></StoreManagerLayout></ProtectedRoute>} />
         
         {/* Sales Manager Routes */}
         <Route 
@@ -501,10 +509,14 @@ function App() {
         <Route path="/accountant/orders" element={<ProtectedRoute><AccountantLayout><AccountantOrders /></AccountantLayout></ProtectedRoute>} />
         <Route path="/accountant/orders/:orderId" element={<ProtectedRoute><AccountantLayout><AccountantOrderDetails /></AccountantLayout></ProtectedRoute>} />
         <Route path="/accountant/sales-analytics" element={<ProtectedRoute><AccountantLayout><SalesAnalytics /></AccountantLayout></ProtectedRoute>} />
+        <Route path="/accountant/settings" element={<ProtectedRoute><AccountantLayout><AccountantSettings /></AccountantLayout></ProtectedRoute>} />
         
         {/* Distributor Routes */}
         <Route path="/distributor/dashboard" element={<ProtectedRoute><DistributorLayout><DistributorDashboard /></DistributorLayout></ProtectedRoute>} />
         <Route path="/distributor/place-order" element={<ProtectedRoute><DistributorLayout><DistributorPlaceOrder /></DistributorLayout></ProtectedRoute>} />
+        <Route path="/distributor/orders" element={<ProtectedRoute><DistributorLayout><DistributorOrders /></DistributorLayout></ProtectedRoute>} />
+        <Route path="/distributor/orders/:orderId" element={<ProtectedRoute><DistributorLayout><DistributorOrderDetails /></DistributorLayout></ProtectedRoute>} />
+        <Route path="/distributor/invoices" element={<ProtectedRoute><DistributorLayout><DistributorInvoices /></DistributorLayout></ProtectedRoute>} />
         
         {/* Warehouse Manager Routes */}
         <Route path="/warehouse-manager/dashboard" element={<ProtectedRoute><WarehouseManagerLayout><WarehouseManagerDashboard /></WarehouseManagerLayout></ProtectedRoute>} />
@@ -515,7 +527,8 @@ function App() {
         {/* Catch all */}
         <Route path="*" element={<NotFound />} />
         </Routes>
-      </AuthProvider>
+        </AuthProvider>
+      </ThemeProvider>
     </BrowserRouter>
   )
 }

@@ -35,12 +35,12 @@ const MyTeam = () => {
     
     try {
       // Fetch sales assistants/team members
-      const teamResponse = await fetch('http://localhost:8081/api/users?role=SALES_ASSISTANT', {
+      const teamResponse = await fetch('https://ggm-backend-h025.onrender.com/api/users?role=SALES_ASSISTANT', {
         headers: getAuthHeaders()
       });
       
       // Fetch orders to calculate revenue and performance
-      const ordersResponse = await fetch('http://localhost:8081/api/orders', {
+      const ordersResponse = await fetch('https://ggm-backend-h025.onrender.com/api/orders', {
         headers: getAuthHeaders()
       });
       
@@ -126,7 +126,7 @@ const MyTeam = () => {
     if (!selectedMember) return;
     
     try {
-      const response = await fetch(`http://localhost:8081/api/users/${selectedMember.id}`, {
+      const response = await fetch(`https://ggm-backend-h025.onrender.com/api/users/${selectedMember.id}`, {
         method: 'DELETE',
         headers: getAuthHeaders()
       });

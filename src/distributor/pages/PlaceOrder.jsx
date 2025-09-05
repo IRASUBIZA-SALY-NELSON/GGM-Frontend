@@ -72,12 +72,16 @@ const PlaceOrder = () => {
     try {
       setSubmitting(true);
 
-      // Create the order
+      // Get current user from localStorage
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      
+      // Create the order with required fields
       const orderData = {
-        orderDate: new Date().toISOString(),
-        totalAmount: getTotalAmount(),
-        status: 'PENDING',
-        orderType: 'DISTRIBUTOR_ORDER'
+        number: `ORD-${Date.now()}`, // Generate unique order number
+        level: 'L1', // Factory to Distributor level
+        channel: 'WEB',
+        currency: 'RWF',
+        notes: 'Order placed by distributor through web portal'
       };
 
       const newOrder = await apiCall(API_ENDPOINTS.ORDERS, {
@@ -88,14 +92,17 @@ const PlaceOrder = () => {
       // Create order lines for each cart item
       for (const item of cart) {
         const orderLineData = {
-          orderId: newOrder.id,
-          productId: item.id,
-          quantity: item.quantity,
+          product: {
+            id: item.id
+          },
+          qty: item.quantity,
           unitPrice: item.unitCost || item.price || 0,
-          totalPrice: (item.unitCost || item.price || 0) * item.quantity
+          discount: 0,
+          tax: 0,
+          notes: `${item.name} - Quantity: ${item.quantity}`
         };
 
-        await apiCall(API_ENDPOINTS.ORDER_LINES, {
+        await apiCall(`${API_ENDPOINTS.ORDER_LINES}/${newOrder.id}`, {
           method: HTTP_METHODS.POST,
           body: JSON.stringify(orderLineData)
         });

@@ -20,7 +20,7 @@ const OrderDetails = () => {
     setLoading(true);
     
     try {
-      const response = await fetch(`http://localhost:8081/api/orders/${orderId}`, {
+      const response = await fetch(`https://ggm-backend-h025.onrender.com/api/orders/${orderId}`, {
         headers: getAuthHeaders()
       });
       

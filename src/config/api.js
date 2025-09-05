@@ -1,5 +1,5 @@
 // API Configuration
-const API_BASE_URL = 'http://localhost:8081'
+const API_BASE_URL = 'https://ggm-backend-h025.onrender.com'
 
 // API Endpoints
 export const API_ENDPOINTS = {

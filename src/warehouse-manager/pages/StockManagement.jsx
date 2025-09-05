@@ -28,7 +28,7 @@ const StockManagement = () => {
     setLoading(true);
     
     try {
-      const response = await fetch('http://localhost:8081/api/inventories', {
+      const response = await fetch('https://ggm-backend-h025.onrender.com/api/inventories', {
         headers: getAuthHeaders()
       });
       
@@ -62,7 +62,7 @@ const StockManagement = () => {
 
   const updateStock = async (productId, newStock) => {
     try {
-      const response = await fetch(`http://localhost:8081/api/inventories/${productId}`, {
+      const response = await fetch(`https://ggm-backend-h025.onrender.com/api/inventories/${productId}`, {
         method: 'PUT',
         headers: getAuthHeaders(),
         body: JSON.stringify({ currentStock: newStock })

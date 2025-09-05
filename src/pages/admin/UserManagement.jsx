@@ -102,8 +102,8 @@ const UserManagement = () => {
       'MANAGER': 'Manager',
       'SALES_MANAGER': 'Sales Manager',
       'STORE_MANAGER': 'Store Manager',
-      'WAREHOUSE_MANAGER': 'Warehouse Manager',
       'ACCOUNTANT': 'Accountant',
+      'DISTRIBUTOR': 'Distributor',
       'USER': 'User'
     }
     return roleMap[role] || role

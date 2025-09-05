@@ -39,7 +39,7 @@ const StockTransfers = () => {
     setLoading(true);
     
     try {
-      const response = await fetch('http://localhost:8081/api/stock-transfers', {
+      const response = await fetch('https://ggm-backend-h025.onrender.com/api/stock-transfers', {
         headers: getAuthHeaders()
       });
       
@@ -80,7 +80,7 @@ const StockTransfers = () => {
 
   const updateTransferStatus = async (transferId, newStatus) => {
     try {
-      const response = await fetch(`http://localhost:8081/api/stock-transfers/${transferId}/status`, {
+      const response = await fetch(`https://ggm-backend-h025.onrender.com/api/stock-transfers/${transferId}/status`, {
         method: 'PUT',
         headers: getAuthHeaders(),
         body: JSON.stringify({ status: newStatus })

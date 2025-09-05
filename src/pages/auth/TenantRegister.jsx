@@ -84,7 +84,7 @@ const TenantRegister = () => {
         gender: formData.gender
       }
       
-      const response = await fetch('http://localhost:8081/api/tenants/admin', {
+      const response = await fetch('https://ggm-backend-h025.onrender.com/api/tenants/admin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(apiData)

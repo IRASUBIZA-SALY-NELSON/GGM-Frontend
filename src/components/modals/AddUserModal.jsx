@@ -31,20 +31,33 @@ const AddUserModal = ({ isOpen, onClose, onSuccess }) => {
     setError('')
 
     try {
-      // Prepare data for backend API
+      // Validate required fields
+      if (!formData.firstName || !formData.lastName || !formData.email || !formData.gender || !formData.role) {
+        setError('Please fill in all required fields')
+        setLoading(false)
+        return
+      }
+
+      // Prepare data for backend API - matching User entity structure
       const userData = {
         firstName: formData.firstName,
         lastName: formData.lastName,
         email: formData.email,
-        gender: formData.gender.toUpperCase(), // Convert to uppercase as expected by backend
-        role: formData.role
+        password: 'TempPassword123!', // Default password - user should change on first login
+        gender: formData.gender.toUpperCase(), // Convert to uppercase enum (MALE/FEMALE)
+        role: formData.role, // Should match Role enum values
+        userStatus: 'ACTIVE' // Set default status
       }
 
+      console.log('Sending user data to backend:', userData)
+
       // Call backend API
-      await apiCall(API_ENDPOINTS.USERS, {
+      const newUser = await apiCall(API_ENDPOINTS.USERS, {
         method: HTTP_METHODS.POST,
         body: JSON.stringify(userData)
       })
+
+      console.log('User created successfully:', newUser)
 
       // Reset form and show success
       setFormData({
@@ -56,8 +69,9 @@ const AddUserModal = ({ isOpen, onClose, onSuccess }) => {
         nationality: '',
         role: 'USER'
       })
-      onSuccess()
+      onSuccess(newUser)
     } catch (err) {
+      console.error('Error creating user:', err)
       setError(err.message || 'Failed to create user')
     } finally {
       setLoading(false)
@@ -248,7 +262,8 @@ const AddUserModal = ({ isOpen, onClose, onSuccess }) => {
                     <option value="USER">User</option>
                     <option value="ADMIN">Administrator</option>
                     <option value="SALES_MANAGER">Sales Manager</option>
-                    <option value="WAREHOUSE_MANAGER">Warehouse Manager</option>
+                    <option value="MANAGER">Manager</option>
+                    <option value="STORE_MANAGER">Store Manager</option>
                     <option value="ACCOUNTANT">Accountant</option>
                     <option value="DISTRIBUTOR">Distributor</option>
                   </select>

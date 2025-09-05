@@ -39,7 +39,7 @@ const MyStock = () => {
         }
         
         return {
-          id: item.sku, // Use SKU as unique identifier
+          id: item.id, // Use actual database ID
           sku: item.sku,
           name: item.name || 'Unknown Product',
           description: item.description || '',
@@ -88,14 +88,14 @@ const MyStock = () => {
     setShowUpdateModal(true)
   }
 
-  const handleQuantityUpdate = async (productSku, newQuantity, reason = 'Manual adjustment') => {
+  const handleQuantityUpdate = async (productId, newQuantity, reason = 'Manual adjustment') => {
     try {
-      // Update product quantity directly in products table using SKU
+      // Update product quantity directly in products table using ID
       const updateData = {
         unit: newQuantity  // Update the unit field which represents quantity
       };
 
-      await apiCall(API_ENDPOINTS.PRODUCT_BY_ID(productSku), {
+      await apiCall(API_ENDPOINTS.PRODUCT_BY_ID(productId), {
         method: HTTP_METHODS.PUT,
         body: JSON.stringify(updateData)
       });
@@ -329,6 +329,7 @@ const MyStock = () => {
         isOpen={showUpdateModal}
         onClose={() => setShowUpdateModal(false)}
         product={selectedProduct}
+        onUpdate={handleQuantityUpdate}
       />
     </div>
   )

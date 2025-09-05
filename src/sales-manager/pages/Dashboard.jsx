@@ -28,7 +28,7 @@ const Dashboard = () => {
     
     try {
       // Fetch orders for stats
-      const ordersResponse = await fetch('http://localhost:8081/api/orders', {
+      const ordersResponse = await fetch('https://ggm-backend-h025.onrender.com/api/orders', {
         headers: getAuthHeaders()
       });
       
@@ -38,7 +38,7 @@ const Dashboard = () => {
       }
 
       // Fetch pending orders for approval
-      const pendingResponse = await fetch('http://localhost:8081/api/orders?status=PENDING', {
+      const pendingResponse = await fetch('https://ggm-backend-h025.onrender.com/api/orders?status=PENDING', {
         headers: getAuthHeaders()
       });
       

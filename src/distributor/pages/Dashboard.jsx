@@ -223,6 +223,14 @@ const Dashboard = () => {
                 <Package className="h-4 w-4" />
                 <span>View All Orders</span>
               </button>
+              
+              <button
+                onClick={() => navigate('/distributor/invoices')}
+                className="w-full flex items-center justify-center space-x-2 border border-gray-300 text-gray-700 py-3 px-4 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                <Package className="h-4 w-4" />
+                <span>View Invoices</span>
+              </button>
             </div>
           </div>
         </div>

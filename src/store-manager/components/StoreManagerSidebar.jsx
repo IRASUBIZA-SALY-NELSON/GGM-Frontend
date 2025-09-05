@@ -4,7 +4,8 @@ import {
   Home, 
   Package, 
   ShoppingCart, 
-  FileText
+  FileText,
+  Settings
 } from 'lucide-react'
 
 const StoreManagerSidebar = () => {
@@ -13,6 +14,7 @@ const StoreManagerSidebar = () => {
     { name: 'My Stock', href: '/store-manager/my-stock', icon: Package },
     { name: 'Place Order', href: '/store-manager/place-order', icon: ShoppingCart },
     { name: 'Billing', href: '/store-manager/billing', icon: FileText },
+    { name: 'Settings', href: '/store-manager/settings', icon: Settings },
   ]
 
   return (

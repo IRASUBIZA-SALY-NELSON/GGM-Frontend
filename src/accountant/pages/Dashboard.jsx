@@ -307,7 +307,9 @@ const Dashboard = () => {
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                 <input
                   type="text"
-                  placeholder="Search..."
+                  placeholder="Search orders and invoices..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 />
               </div>
@@ -431,23 +433,6 @@ const Dashboard = () => {
           </div>
           
           <div className="p-6">
-            <div className="flex justify-between items-center mb-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                <input
-                  type="text"
-                  placeholder="Search..."
-                  className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                />
-              </div>
-              <button 
-                onClick={() => setShowFilter(!showFilter)}
-                className="flex items-center space-x-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
-              >
-                <Filter className="w-4 h-4" />
-                <span className="text-sm">Filter</span>
-              </button>
-            </div>
 
             <div className="overflow-x-auto">
               <table className="w-full">

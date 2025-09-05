@@ -42,12 +42,12 @@ const Distributors = () => {
     
     try {
       // Fetch distributors
-      const distributorsResponse = await fetch('http://localhost:8081/api/distributors', {
+      const distributorsResponse = await fetch('https://ggm-backend-h025.onrender.com/api/distributors', {
         headers: getAuthHeaders()
       });
       
       // Fetch orders to calculate last order and contribution
-      const ordersResponse = await fetch('http://localhost:8081/api/orders', {
+      const ordersResponse = await fetch('https://ggm-backend-h025.onrender.com/api/orders', {
         headers: getAuthHeaders()
       });
       
@@ -114,7 +114,7 @@ const Distributors = () => {
     if (!selectedDistributor) return;
     
     try {
-      const response = await fetch(`http://localhost:8081/api/distributors/${selectedDistributor.id}`, {
+      const response = await fetch(`https://ggm-backend-h025.onrender.com/api/distributors/${selectedDistributor.id}`, {
         method: 'DELETE',
         headers: getAuthHeaders()
       });

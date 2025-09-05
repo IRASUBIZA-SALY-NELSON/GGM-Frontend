@@ -25,7 +25,7 @@ const Dashboard = () => {
   const fetchUsers = async () => {
     try {
       const token = localStorage.getItem('accessToken')
-      const response = await fetch('http://localhost:8081/api/users', {
+      const response = await fetch('https://ggm-backend-h025.onrender.com/api/users', {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,

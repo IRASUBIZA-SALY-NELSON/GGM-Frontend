@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, CreditCard, FileText, ShoppingCart, BarChart3 } from 'lucide-react';
+import { LayoutDashboard, CreditCard, FileText, ShoppingCart, BarChart3, Settings } from 'lucide-react';
 
 const AccountantSidebar = () => {
   const location = useLocation();
@@ -30,6 +30,11 @@ const AccountantSidebar = () => {
       name: 'Sales Analytics',
       href: '/accountant/sales-analytics',
       icon: BarChart3,
+    },
+    {
+      name: 'Settings',
+      href: '/accountant/settings',
+      icon: Settings,
     },
   ];
 

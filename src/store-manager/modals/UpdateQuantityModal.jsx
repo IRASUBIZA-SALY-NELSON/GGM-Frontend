@@ -1,12 +1,23 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { X } from 'lucide-react'
 
-const UpdateQuantityModal = ({ isOpen, onClose, product }) => {
-  const [quantity, setQuantity] = useState(product?.quantity || 0)
+const UpdateQuantityModal = ({ isOpen, onClose, product, onUpdate }) => {
+  const [quantity, setQuantity] = useState(product?.currentStock || 0)
+
+  // Update quantity when product changes
+  useEffect(() => {
+    if (product) {
+      setQuantity(product.currentStock || 0)
+    }
+  }, [product])
 
   const handleUpdate = () => {
     console.log('Updating quantity for:', product?.name, 'to:', quantity)
-    onClose()
+    if (onUpdate && product) {
+      onUpdate(product.id, quantity)
+    } else {
+      onClose()
+    }
   }
 
   if (!isOpen) return null
@@ -16,7 +27,7 @@ const UpdateQuantityModal = ({ isOpen, onClose, product }) => {
       <div className="bg-white rounded-lg w-full max-w-md mx-4">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <h2 className="text-xl font-semibold text-gray-900">Update Quantity For Jeans</h2>
+          <h2 className="text-xl font-semibold text-gray-900">Update Quantity For {product?.name || 'Product'}</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
             <X className="w-6 h-6" />
           </button>
