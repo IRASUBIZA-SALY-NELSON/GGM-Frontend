@@ -1,64 +1,119 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { 
-  Search, 
-  Bell, 
-  ChevronDown, 
   TrendingUp,
   TrendingDown,
   Plus,
   Eye,
   CreditCard
 } from 'lucide-react'
+import { API_ENDPOINTS, apiCall } from '../../config/api'
 
 const Dashboard = () => {
+  const navigate = useNavigate()
+  const [dashboardData, setDashboardData] = useState({
+    totalOrders: 0,
+    revenue: 0,
+    totalProducts: 0,
+    customers: 0,
+    recentOrders: [],
+    loading: true,
+    error: null
+  })
+
   const statsCards = [
     {
       title: 'Total Orders',
-      value: '560',
-      change: '+8%',
-      changeType: 'increase',
-      updateTime: 'Update: July 14, 2023',
-      icon: '📦',
-      color: 'purple'
+      value: dashboardData.totalOrders.toString(),
+      change: '+0%',
+      trend: 'up',
+      icon: '📦'
     },
     {
-      title: 'Monthly Spending',
-      value: '1,050,000 rwf',
-      change: '+12%',
-      changeType: 'increase',
-      updateTime: 'Update: July 16, 2023',
-      icon: '💰',
-      color: 'purple'
+      title: 'Revenue',
+      value: `$${dashboardData.revenue.toLocaleString()}`,
+      change: '+0%',
+      trend: 'up',
+      icon: '💰'
     },
     {
-      title: 'Top Selling Product',
-      value: 'Jeans',
-      change: '+8%',
-      changeType: 'increase',
-      updateTime: 'Update: July 14, 2023',
-      icon: '👕',
-      color: 'purple'
+      title: 'Products',
+      value: dashboardData.totalProducts.toString(),
+      change: '+0%',
+      trend: 'up',
+      icon: '📋'
     },
     {
-      title: 'Total Inventory Value',
-      value: '2,000,200 rwf',
-      change: '+12%',
-      changeType: 'increase',
-      updateTime: 'Update: July 16, 2023',
-      icon: '📊',
-      color: 'purple'
+      title: 'Customers',
+      value: dashboardData.customers.toString(),
+      change: '+0%',
+      trend: 'up',
+      icon: '👥'
     }
   ]
 
-  const recentOrders = [
-    { id: 1, customer: 'Leasie Watson', avatar: 'LW', status: 'Pending', quantity: 100, date: '10/12/2025 10:12pm' },
-    { id: 2, customer: 'Darlene Robertson', avatar: 'DR', status: 'Pending', quantity: 100, date: '10/12/2025 10:12pm' },
-    { id: 3, customer: 'Jacob Jones', avatar: 'JJ', status: 'Pending', quantity: 200, date: '10/12/2025 10:12pm' },
-    { id: 4, customer: 'Kathryn Murphy', avatar: 'KM', status: 'Approved', quantity: 300, date: '10/12/2025 10:12pm' },
-    { id: 5, customer: 'Leslie Alexander', avatar: 'LA', status: 'Approved', quantity: 400, date: '10/12/2025 10:12pm' },
-    { id: 6, customer: 'Ronald Richards', avatar: 'RR', status: 'Approved', quantity: 500, date: '10/12/2025 10:12pm' },
-    { id: 7, customer: 'Jenny Wilson', avatar: 'JW', status: 'Approved', quantity: 600, date: '10/12/2025 10:12pm' },
-  ]
+  // Fetch dashboard data on component mount
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        setDashboardData(prev => ({ ...prev, loading: true, error: null }))
+        
+        // Fetch orders
+        const ordersResponse = await apiCall(API_ENDPOINTS.ORDERS)
+        const orders = ordersResponse || []
+        
+        // Fetch products
+        let products = []
+        try {
+          const productsResponse = await apiCall(API_ENDPOINTS.PRODUCTS)
+          products = productsResponse || []
+        } catch (error) {
+          console.log('Products API not available:', error.message)
+        }
+        
+        // Calculate metrics
+        const totalOrders = orders.length
+        const revenue = orders.reduce((sum, order) => {
+          const amount = parseFloat(order.totalAmount || order.amount || 0)
+          return sum + amount
+        }, 0)
+        const totalProducts = products.length
+        
+        // Get recent orders (last 5)
+        const recentOrders = orders
+          .sort((a, b) => new Date(b.createdAt || b.orderDate) - new Date(a.createdAt || a.orderDate))
+          .slice(0, 5)
+          .map(order => ({
+            id: order.id || order.orderNumber || 'N/A',
+            customer: order.customerName || order.customer || 'Unknown Customer',
+            amount: `$${(order.totalAmount || order.amount || 0).toLocaleString()}`,
+            status: order.status || 'Pending',
+            date: order.createdAt ? new Date(order.createdAt).toLocaleDateString() : 
+                  order.orderDate ? new Date(order.orderDate).toLocaleDateString() : 'N/A'
+          }))
+        
+        setDashboardData({
+          totalOrders,
+          revenue,
+          totalProducts,
+          customers: 0, // Will be 0 until we have customer API
+          recentOrders,
+          loading: false,
+          error: null
+        })
+        
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error)
+        setDashboardData(prev => ({
+          ...prev,
+          loading: false,
+          error: error.message
+        }))
+      }
+    }
+    
+    fetchDashboardData()
+  }, [])
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -74,37 +129,10 @@ const Dashboard = () => {
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Hello Robert</h1>
-          <p className="text-sm text-gray-500">Good Morning</p>
-        </div>
-        
-        <div className="flex items-center space-x-4">
-          {/* Search */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search..."
-              className="pl-10 pr-4 py-2 w-64 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-            />
-          </div>
-          
-          {/* Notifications */}
-          <button className="relative p-2 text-gray-400 hover:text-gray-600">
-            <Bell className="w-6 h-6" />
-            <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full"></span>
-          </button>
-          
-          {/* User Profile */}
-          <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center">
-              <span className="text-white text-sm font-medium">RA</span>
-            </div>
-            <span className="text-sm font-medium text-gray-900">Robert Allen</span>
-            <ChevronDown className="w-4 h-4 text-gray-400" />
-          </div>
+          <h1 className="text-2xl font-bold text-gray-900">👋 Hello Store Manager</h1>
+           <p className="text-sm text-gray-500">Good Morning</p>
         </div>
       </div>
 
@@ -120,13 +148,13 @@ const Dashboard = () => {
                     <span className="text-lg">{stat.icon}</span>
                   </div>
                   <div className="flex items-center space-x-1">
-                    {stat.changeType === 'increase' ? (
+                    {stat.trend === 'up' ? (
                       <TrendingUp className="w-4 h-4 text-green-500" />
                     ) : (
                       <TrendingDown className="w-4 h-4 text-red-500" />
                     )}
                     <span className={`text-sm font-medium ${
-                      stat.changeType === 'increase' ? 'text-green-500' : 'text-red-500'
+                      stat.trend === 'up' ? 'text-green-500' : 'text-red-500'
                     }`}>
                       {stat.change}
                     </span>
@@ -134,7 +162,6 @@ const Dashboard = () => {
                 </div>
                 <h3 className="text-sm font-medium text-gray-600 mb-1">{stat.title}</h3>
                 <p className="text-xl font-bold text-gray-900 mb-2">{stat.value}</p>
-                <p className="text-xs text-gray-500">{stat.updateTime}</p>
               </div>
             ))}
           </div>
@@ -217,43 +244,66 @@ const Dashboard = () => {
                 <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Customer Name
+                      Order ID
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Customer
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Amount
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Status
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Order Items
+                      Date
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Date Created
+                      Actions
                     </th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {recentOrders.map((order) => (
-                    <tr key={order.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center space-x-3">
-                          <div className="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center">
-                            <span className="text-white text-sm font-medium">{order.avatar}</span>
-                          </div>
-                          <span className="text-sm font-medium text-gray-900">{order.customer}</span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(order.status)}`}>
-                          {order.status}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {order.quantity}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {order.date}
+                <tbody className="divide-y divide-gray-200">
+                  {dashboardData.loading ? (
+                    <tr>
+                      <td colSpan="6" className="px-4 py-8 text-center text-gray-500">
+                        Loading orders...
                       </td>
                     </tr>
-                  ))}
+                  ) : dashboardData.error ? (
+                    <tr>
+                      <td colSpan="6" className="px-4 py-8 text-center text-red-500">
+                        Error loading orders: {dashboardData.error}
+                      </td>
+                    </tr>
+                  ) : dashboardData.recentOrders.length === 0 ? (
+                    <tr>
+                      <td colSpan="6" className="px-4 py-8 text-center text-gray-500">
+                        No orders found
+                      </td>
+                    </tr>
+                  ) : (
+                    dashboardData.recentOrders.map((order, index) => (
+                      <tr key={index} className="hover:bg-gray-50">
+                        <td className="px-4 py-3 text-sm font-medium text-gray-900">{order.id}</td>
+                        <td className="px-4 py-3 text-sm text-gray-600">{order.customer}</td>
+                        <td className="px-4 py-3 text-sm text-gray-900">{order.amount}</td>
+                        <td className="px-4 py-3">
+                          <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
+                            getStatusColor(order.status)
+                          }`}>
+                            {order.status}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-600">{order.date}</td>
+                        <td className="px-4 py-3">
+                          <button className="text-purple-600 hover:text-purple-800">
+                            <Eye className="w-4 h-4" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
@@ -301,17 +351,26 @@ const Dashboard = () => {
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Links</h3>
             
             <div className="space-y-3">
-              <button className="w-full flex items-center justify-center space-x-2 bg-purple-600 text-white py-3 px-4 rounded-lg hover:bg-purple-700 transition-colors">
+              <button 
+                onClick={() => navigate('/store-manager/place-order')}
+                className="w-full flex items-center justify-center space-x-2 bg-purple-600 text-white py-3 px-4 rounded-lg hover:bg-purple-700 transition-colors"
+              >
                 <Plus className="w-4 h-4" />
                 <span className="font-medium">Place New Order</span>
               </button>
               
-              <button className="w-full flex items-center justify-center space-x-2 bg-purple-600 text-white py-3 px-4 rounded-lg hover:bg-purple-700 transition-colors">
+              <button 
+                onClick={() => navigate('/store-manager/my-stock')}
+                className="w-full flex items-center justify-center space-x-2 bg-purple-600 text-white py-3 px-4 rounded-lg hover:bg-purple-700 transition-colors"
+              >
                 <Eye className="w-4 h-4" />
                 <span className="font-medium">View My Stock</span>
               </button>
               
-              <button className="w-full flex items-center justify-center space-x-2 bg-purple-600 text-white py-3 px-4 rounded-lg hover:bg-purple-700 transition-colors">
+              <button 
+                onClick={() => navigate('/store-manager/billing')}
+                className="w-full flex items-center justify-center space-x-2 bg-purple-600 text-white py-3 px-4 rounded-lg hover:bg-purple-700 transition-colors"
+              >
                 <CreditCard className="w-4 h-4" />
                 <span className="font-medium">Pay Invoice</span>
               </button>

@@ -50,8 +50,47 @@ const ReorderCart = () => {
     setShowUpdateModal(true)
   }
 
-  const handleSubmitOrder = () => {
-    setShowSubmitModal(true)
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem('accessToken');
+    return {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    };
+  };
+
+  const handleSubmitOrder = async () => {
+    try {
+      const orderData = {
+        items: cartItems.map(item => ({
+          productId: item.id,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice
+        })),
+        totalAmount: calculateTotal(),
+        status: 'PENDING',
+        orderType: 'REORDER'
+      };
+
+      const response = await fetch('http://localhost:8080/api/orders', {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(orderData)
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log('Reorder submitted successfully:', result);
+        setShowSubmitModal(true);
+        // Clear cart after successful submission
+        setCartItems([]);
+      } else {
+        console.error('Failed to submit reorder:', response.statusText);
+        alert('Failed to submit reorder. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error submitting reorder:', error);
+      alert('Error submitting reorder. Please try again.');
+    }
   }
 
   const handleRemoveFromCart = (productId) => {
@@ -242,6 +281,7 @@ const ReorderCart = () => {
         isOpen={showRemoveModal}
         onClose={() => setShowRemoveModal(false)}
         product={selectedProduct}
+        onRemove={handleRemoveFromCart}
       />
 
       <SubmitOrderModal 

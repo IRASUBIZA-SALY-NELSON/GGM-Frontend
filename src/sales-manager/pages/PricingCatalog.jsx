@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, Bell, ChevronDown, Filter, Plus, MoreVertical, Trash2, Edit } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -11,70 +11,75 @@ const PricingCatalog = () => {
   const [newUnit, setNewUnit] = useState('');
   const [newCategory, setNewCategory] = useState('');
   const [showActionsDropdown, setShowActionsDropdown] = useState(null);
+  const [productsData, setProductsData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
 
-  // Sample products data matching the design
-  const productsData = [
-    {
-      id: 1,
-      name: 'Skinny Jeans',
-      category: 'Casual Wear',
-      currentStock: '130 units',
-      unitPrice: '1,000rwf',
-      status: 'In Stock',
-      statusColor: 'text-green-600 bg-green-100',
-      image: '/1.png'
-    },
-    {
-      id: 2,
-      name: 'Skinny Jeans',
-      category: 'Casual Wear',
-      currentStock: '130 units',
-      unitPrice: '1,000rwf',
-      status: 'On Sale',
-      statusColor: 'text-orange-600 bg-orange-100',
-      image: '/1.png'
-    },
-    {
-      id: 3,
-      name: 'Skinny Jeans',
-      category: 'Casual Wear',
-      currentStock: '130 units',
-      unitPrice: '1,000rwf',
-      status: 'Out Stock',
-      statusColor: 'text-red-600 bg-red-100',
-      image: '/1.png'
-    },
-    {
-      id: 4,
-      name: 'Skinny Jeans',
-      category: 'Casual Wear',
-      currentStock: '130 units',
-      unitPrice: '1,000rwf',
-      status: 'Active',
-      statusColor: 'text-green-600 bg-green-100',
-      image: '/1.png'
-    },
-    {
-      id: 5,
-      name: 'Skinny Jeans',
-      category: 'Casual Wear',
-      currentStock: '130 units',
-      unitPrice: '1,000rwf',
-      status: 'Active',
-      statusColor: 'text-green-600 bg-green-100',
-      image: '/1.png'
-    },
-    {
-      id: 6,
-      name: 'Skinny Jeans',
-      category: 'Casual Wear',
-      currentStock: '130 units',
-      unitPrice: '1,000rwf',
-      status: 'Active',
-      statusColor: 'text-green-600 bg-green-100',
-      image: '/1.png'
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem('accessToken');
+    return {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    };
+  };
+
+  const getStatusColor = (status) => {
+    switch (status?.toLowerCase()) {
+      case 'in stock': case 'active': return 'text-green-600 bg-green-100';
+      case 'on sale': return 'text-orange-600 bg-orange-100';
+      case 'out of stock': case 'out stock': return 'text-red-600 bg-red-100';
+      case 'low stock': return 'text-yellow-600 bg-yellow-100';
+      default: return 'text-gray-600 bg-gray-100';
     }
-  ];
+  };
+
+  const fetchProducts = async () => {
+    setLoading(true);
+    
+    try {
+      const response = await fetch('http://localhost:8080/api/products', {
+        headers: getAuthHeaders()
+      });
+      
+      if (response.ok) {
+        const products = await response.json();
+        
+        const processedProducts = products.map(product => {
+          const stock = product.stock || product.quantity || 0;
+          let status = 'Active';
+          if (stock === 0) status = 'Out of Stock';
+          else if (stock < 10) status = 'Low Stock';
+          else if (product.onSale) status = 'On Sale';
+          else if (stock > 0) status = 'In Stock';
+          
+          return {
+            id: product.id,
+            name: product.name || product.productName || 'Unknown Product',
+            category: product.category || product.categoryName || 'Uncategorized',
+            currentStock: `${stock} units`,
+            unitPrice: `${(product.price || product.unitPrice || 0).toLocaleString()}rwf`,
+            status: status,
+            statusColor: getStatusColor(status),
+            image: product.image || product.imageUrl || '/1.png'
+          };
+        });
+        
+        setProductsData(processedProducts);
+      } else {
+        console.warn('Failed to fetch products:', response.statusText);
+        setProductsData([]);
+      }
+    } catch (error) {
+      console.warn('Error fetching products:', error);
+      setProductsData([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchProducts();
+  }, []);
 
   const handleAddProduct = () => {
     navigate('/sales-manager/pricing-catalog/add-new');
@@ -86,20 +91,77 @@ const PricingCatalog = () => {
     setShowActionsDropdown(null);
   };
 
-  const confirmDelete = () => {
-    // Handle delete logic here
+  const confirmDelete = async () => {
+    if (!selectedProduct) return;
+    
+    try {
+      const response = await fetch(`http://localhost:8080/api/products/${selectedProduct.id}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders()
+      });
+      
+      if (response.ok) {
+        // Refresh products list
+        fetchProducts();
+      } else {
+        console.error('Failed to delete product');
+        alert('Failed to delete product. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error deleting product:', error);
+      alert('Error deleting product. Please try again.');
+    }
+    
     setShowDeleteModal(false);
     setSelectedProduct(null);
   };
 
-  const handleAddUnit = () => {
-    // Handle add unit logic here
+  const handleAddUnit = async () => {
+    if (!newUnit.trim()) return;
+    
+    try {
+      const response = await fetch('http://localhost:8080/api/units', {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ name: newUnit.trim() })
+      });
+      
+      if (response.ok) {
+        alert('Unit added successfully!');
+      } else {
+        alert('Failed to add unit. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error adding unit:', error);
+      alert('Error adding unit. Please try again.');
+    }
+    
     setShowAddUnitModal(false);
     setNewUnit('');
   };
 
-  const handleAddCategory = () => {
-    // Handle add category logic here
+  const handleAddCategory = async () => {
+    if (!newCategory.trim()) return;
+    
+    try {
+      const response = await fetch('http://localhost:8080/api/categories', {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ name: newCategory.trim() })
+      });
+      
+      if (response.ok) {
+        alert('Category added successfully!');
+        // Refresh products to show updated categories
+        fetchProducts();
+      } else {
+        alert('Failed to add category. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error adding category:', error);
+      alert('Error adding category. Please try again.');
+    }
+    
     setShowAddCategoryModal(false);
     setNewCategory('');
   };
@@ -123,6 +185,8 @@ const PricingCatalog = () => {
             <input
               type="text"
               placeholder="Search..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10 pr-4 py-2 w-80 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
             />
           </div>
@@ -144,6 +208,8 @@ const PricingCatalog = () => {
           <input
             type="text"
             placeholder="Search..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10 pr-4 py-2 w-64 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
           />
         </div>
@@ -201,7 +267,21 @@ const PricingCatalog = () => {
 
       {/* Products Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-        {productsData.map((product) => (
+        {loading ? (
+          <div className="col-span-full text-center py-8 text-gray-500">
+            Loading products...
+          </div>
+        ) : productsData.length === 0 ? (
+          <div className="col-span-full text-center py-8 text-gray-500">
+            No products found
+          </div>
+        ) : (
+          productsData
+            .filter(product => 
+              product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+              product.category.toLowerCase().includes(searchTerm.toLowerCase())
+            )
+            .map((product) => (
           <div key={product.id} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
             <div className="relative">
               <img 
@@ -263,7 +343,8 @@ const PricingCatalog = () => {
               </div>
             </div>
           </div>
-        ))}
+            ))
+        )}
       </div>
 
       {/* Pagination */}

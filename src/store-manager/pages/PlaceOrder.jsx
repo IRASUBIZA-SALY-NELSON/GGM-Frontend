@@ -1,8 +1,9 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Search, Filter, ShoppingCart } from 'lucide-react'
 import SubmitOrderModal from '../modals/SubmitOrderModal'
 import SpecifyQuantityModal from '../modals/SpecifyQuantityModal'
+import StoreManagerFilterModal from '../modals/StoreManagerFilterModal'
 
 const PlaceOrder = () => {
   const navigate = useNavigate()
@@ -11,15 +12,56 @@ const PlaceOrder = () => {
   const [showQuantityModal, setShowQuantityModal] = useState(false)
   const [selectedProduct, setSelectedProduct] = useState(null)
   const [orderCart, setOrderCart] = useState([])
+  const [products, setProducts] = useState([])
+  const [loading, setLoading] = useState(true)
 
-  const products = [
-    { id: 1, name: 'Skinny Jeans', category: 'Casual Wear', currentStock: 120, unitPrice: 6000, image: '1.png', status: 'Active' },
-    { id: 2, name: 'Skinny Jeans', category: 'Casual Wear', currentStock: 135, unitPrice: 6000, image: '2.png', status: 'Active' },
-    { id: 3, name: 'Skinny Jeans', category: 'Casual Wear', currentStock: 89, unitPrice: 6000, image: '1.png', status: 'Active' },
-    { id: 4, name: 'Skinny Jeans', category: 'Casual Wear', currentStock: 156, unitPrice: 6000, image: '2.png', status: 'Active' },
-    { id: 5, name: 'Skinny Jeans', category: 'Casual Wear', currentStock: 142, unitPrice: 6000, image: '1.png', status: 'Active' },
-    { id: 6, name: 'Skinny Jeans', category: 'Casual Wear', currentStock: 98, unitPrice: 6000, image: '2.png', status: 'Active' },
-  ]
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem('accessToken');
+    return {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    };
+  };
+
+  const fetchProducts = async () => {
+    setLoading(true);
+    
+    try {
+      const response = await fetch('http://localhost:8080/api/products', {
+        headers: getAuthHeaders()
+      });
+      
+      if (response.ok) {
+        const productsData = await response.json();
+        
+        // Process products data for display
+        const processedProducts = productsData.map(item => ({
+          id: item.id,
+          name: item.name || item.productName || 'Unknown Product',
+          category: item.category || 'Uncategorized',
+          currentStock: item.stock || item.currentStock || 0,
+          unitPrice: item.price || item.unitPrice || 0,
+          image: item.imageUrl || item.image || '1.png',
+          status: (item.stock || item.currentStock || 0) > 0 ? 'Active' : 'Out of Stock',
+          description: item.description || ''
+        }));
+        
+        setProducts(processedProducts);
+      } else {
+        console.warn('Failed to fetch products:', response.statusText);
+        setProducts([]);
+      }
+    } catch (error) {
+      console.warn('Error fetching products:', error);
+      setProducts([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchProducts();
+  }, []);
 
   const handleAddToOrder = (product) => {
     setSelectedProduct(product)
@@ -106,7 +148,16 @@ const PlaceOrder = () => {
 
       {/* Products Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-        {products.map((product) => (
+        {loading ? (
+          <div className="col-span-full py-8 text-center text-gray-500">
+            Loading products...
+          </div>
+        ) : products.length === 0 ? (
+          <div className="col-span-full py-8 text-center text-gray-500">
+            No products available for ordering
+          </div>
+        ) : (
+          products.map((product) => (
           <div key={product.id} className="bg-white rounded-lg border border-gray-200 overflow-hidden">
             <div className="relative">
               <div className="w-full h-48 bg-gray-100 flex items-center justify-center overflow-hidden">
@@ -116,7 +167,9 @@ const PlaceOrder = () => {
                   className="w-full h-full object-cover"
                 />
               </div>
-              <span className="absolute top-2 left-2 bg-green-500 text-white text-xs px-2 py-1 rounded">
+              <span className={`absolute top-2 left-2 text-white text-xs px-2 py-1 rounded ${
+                product.status === 'Active' ? 'bg-green-500' : 'bg-red-500'
+              }`}>
                 {product.status}
               </span>
             </div>
@@ -141,13 +194,19 @@ const PlaceOrder = () => {
               
               <button 
                 onClick={() => handleAddToOrder(product)}
-                className="w-full bg-purple-600 text-white py-2 px-4 rounded-lg hover:bg-purple-700 transition-colors"
+                disabled={product.status === 'Out of Stock'}
+                className={`w-full py-2 px-4 rounded-lg transition-colors ${
+                  product.status === 'Out of Stock' 
+                    ? 'bg-gray-400 text-gray-200 cursor-not-allowed' 
+                    : 'bg-purple-600 text-white hover:bg-purple-700'
+                }`}
               >
-                Add to Order
+                {product.status === 'Out of Stock' ? 'Out of Stock' : 'Add to Order'}
               </button>
             </div>
           </div>
-        ))}
+          ))
+        )}
       </div>
 
       {/* Pagination */}

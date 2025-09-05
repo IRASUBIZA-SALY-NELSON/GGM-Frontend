@@ -1,124 +1,88 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, Filter, FileText } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const Orders = () => {
   const navigate = useNavigate();
   const [showFilter, setShowFilter] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [orders, setOrders] = useState([]);
 
-  // Sample orders data
-  const orders = [
-    {
-      id: 1,
-      order: '01',
-      distributorName: 'Ronald Richards',
-      distributorAvatar: '/distributor.png',
-      salesAssistant: 'Ronald Richards',
-      salesAssistantAvatar: '/distributor.png',
-      orderValue: '2,000,000rwf',
-      statusOfReceipt: '2 invoices overdue',
-      date: '2/2/2025'
-    },
-    {
-      id: 2,
-      order: '01',
-      distributorName: 'Ronald Richards',
-      distributorAvatar: '/distributor.png',
-      salesAssistant: 'Ronald Richards',
-      salesAssistantAvatar: '/distributor.png',
-      orderValue: '2,000,000rwf',
-      statusOfReceipt: '2 invoices overdue',
-      date: '2/2/2025'
-    },
-    {
-      id: 3,
-      order: '01',
-      distributorName: 'Ronald Richards',
-      distributorAvatar: '/distributor.png',
-      salesAssistant: 'Ronald Richards',
-      salesAssistantAvatar: '/distributor.png',
-      orderValue: '2,000,000rwf',
-      statusOfReceipt: '2 invoices overdue',
-      date: '2/2/2025'
-    },
-    {
-      id: 4,
-      order: '01',
-      distributorName: 'Ronald Richards',
-      distributorAvatar: '/distributor.png',
-      salesAssistant: 'Ronald Richards',
-      salesAssistantAvatar: '/distributor.png',
-      orderValue: '2,000,000rwf',
-      statusOfReceipt: '2 invoices overdue',
-      date: '2/2/2025'
-    },
-    {
-      id: 5,
-      order: '01',
-      distributorName: 'Ronald Richards',
-      distributorAvatar: '/distributor.png',
-      salesAssistant: 'Ronald Richards',
-      salesAssistantAvatar: '/distributor.png',
-      orderValue: '2,000,000rwf',
-      statusOfReceipt: '2 invoices overdue',
-      date: '2/2/2025'
-    },
-    {
-      id: 6,
-      order: '01',
-      distributorName: 'Ronald Richards',
-      distributorAvatar: '/distributor.png',
-      salesAssistant: 'Ronald Richards',
-      salesAssistantAvatar: '/distributor.png',
-      orderValue: '2,000,000rwf',
-      statusOfReceipt: '2 invoices overdue',
-      date: '2/2/2025'
-    },
-    {
-      id: 7,
-      order: '01',
-      distributorName: 'Ronald Richards',
-      distributorAvatar: '/distributor.png',
-      salesAssistant: 'Ronald Richards',
-      salesAssistantAvatar: '/distributor.png',
-      orderValue: '2,000,000rwf',
-      statusOfReceipt: '2 invoices overdue',
-      date: '2/2/2025'
-    },
-    {
-      id: 8,
-      order: '01',
-      distributorName: 'Ronald Richards',
-      distributorAvatar: '/distributor.png',
-      salesAssistant: 'Ronald Richards',
-      salesAssistantAvatar: '/distributor.png',
-      orderValue: '2,000,000rwf',
-      statusOfReceipt: '2 invoices overdue',
-      date: '2/2/2025'
-    },
-    {
-      id: 9,
-      order: '01',
-      distributorName: 'Ronald Richards',
-      distributorAvatar: '/distributor.png',
-      salesAssistant: 'Ronald Richards',
-      salesAssistantAvatar: '/distributor.png',
-      orderValue: '2,000,000rwf',
-      statusOfReceipt: '2 invoices overdue',
-      date: '2/2/2025'
-    },
-    {
-      id: 10,
-      order: '01',
-      distributorName: 'Ronald Richards',
-      distributorAvatar: '/distributor.png',
-      salesAssistant: 'Ronald Richards',
-      salesAssistantAvatar: '/distributor.png',
-      orderValue: '2,000,000rwf',
-      statusOfReceipt: '2 invoices overdue',
-      date: '2/2/2025'
+  // Helper function to get authentication headers
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem('accessToken');
+    return {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    };
+  };
+
+  // Fetch orders data
+  const fetchOrders = async () => {
+    setLoading(true);
+    try {
+      const [ordersResponse, invoicesResponse] = await Promise.all([
+        fetch('http://localhost:8080/api/orders', { headers: getAuthHeaders() }),
+        fetch('http://localhost:8080/api/invoices', { headers: getAuthHeaders() })
+      ]);
+      
+      if (ordersResponse.ok) {
+        const ordersData = await ordersResponse.json();
+        const invoicesData = invoicesResponse.ok ? await invoicesResponse.json() : [];
+        
+        const processedOrders = ordersData.map(order => {
+          // Find related invoices for this order
+          const relatedInvoices = invoicesData.filter(invoice => 
+            invoice.orderId === order.id || invoice.orderNumber === order.orderNumber
+          );
+          
+          // Calculate overdue invoices
+          const currentDate = new Date();
+          const overdueInvoices = relatedInvoices.filter(invoice => {
+            const dueDate = new Date(invoice.dueDate || invoice.paymentDue);
+            return dueDate < currentDate && (invoice.status === 'PENDING' || invoice.status === 'Pending');
+          });
+          
+          const statusOfReceipt = overdueInvoices.length > 0 
+            ? `${overdueInvoices.length} invoice${overdueInvoices.length > 1 ? 's' : ''} overdue`
+            : relatedInvoices.length > 0 ? 'All invoices current' : 'No invoices';
+          
+          return {
+            id: order.id,
+            order: order.orderNumber || order.id,
+            distributorName: order.customerName || order.distributorName || 'Unknown Distributor',
+            distributorAvatar: '/distributor.png',
+            salesAssistant: order.salesAssistant || order.createdBy || 'Unknown Sales Assistant',
+            salesAssistantAvatar: '/distributor.png',
+            orderValue: `${(order.totalAmount || order.amount || 0).toLocaleString()}rwf`,
+            statusOfReceipt,
+            date: new Date(order.orderDate || order.createdAt).toLocaleDateString()
+          };
+        });
+        
+        setOrders(processedOrders);
+      } else {
+        setOrders([]);
+      }
+    } catch (error) {
+      console.error('Error fetching orders:', error);
+      setOrders([]);
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
+
+  // Filter orders based on search term
+  const filteredOrders = orders.filter(order =>
+    order.distributorName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    order.salesAssistant.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    order.order.toString().includes(searchTerm.toLowerCase())
+  );
+
+  useEffect(() => {
+    fetchOrders();
+  }, []);
 
   const handleOrderClick = (orderId) => {
     navigate(`/accountant/orders/${orderId}`);
@@ -154,6 +118,8 @@ const Orders = () => {
             <input
               type="text"
               placeholder="Search..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent w-80"
             />
           </div>
@@ -184,7 +150,20 @@ const Orders = () => {
                 </tr>
               </thead>
               <tbody>
-                {orders.map((order) => (
+                {loading ? (
+                  <tr>
+                    <td colSpan="7" className="py-8 text-center text-gray-500">
+                      Loading orders...
+                    </td>
+                  </tr>
+                ) : filteredOrders.length === 0 ? (
+                  <tr>
+                    <td colSpan="7" className="py-8 text-center text-gray-500">
+                      No orders found
+                    </td>
+                  </tr>
+                ) : (
+                  filteredOrders.map((order) => (
                   <tr key={order.id} className="border-b border-gray-100 hover:bg-gray-50">
                     <td className="py-4 px-6">
                       <div className="flex items-center space-x-2">
@@ -232,7 +211,8 @@ const Orders = () => {
                       </button>
                     </td>
                   </tr>
-                ))}
+                  ))
+                )}
               </tbody>
             </table>
           </div>

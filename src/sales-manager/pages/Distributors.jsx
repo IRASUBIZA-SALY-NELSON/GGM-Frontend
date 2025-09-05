@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, Bell, ChevronDown, Filter, Plus, Eye, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -6,66 +6,23 @@ const Distributors = () => {
   const navigate = useNavigate();
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedDistributor, setSelectedDistributor] = useState(null);
+  const [distributorsData, setDistributorsData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [stats, setStats] = useState({
+    totalDistributors: 0,
+    totalContribution: 0,
+    averageRevenue: 0,
+    loading: true
+  });
 
-  // Sample distributors data matching the design
-  const distributorsData = [
-    {
-      id: 1,
-      companyName: 'AMACO CLOTHES LTD',
-      managerName: 'Leasie Watson',
-      managerAvatar: '/distributor.png',
-      lastOrder: '10/12/2025',
-      orderValue: '100,000rwf'
-    },
-    {
-      id: 2,
-      companyName: 'AMACO CLOTHES LTD',
-      managerName: 'Leasie Watson',
-      managerAvatar: '/distributor.png',
-      lastOrder: '10/12/2025',
-      orderValue: '100,000rwf'
-    },
-    {
-      id: 3,
-      companyName: 'AMACO CLOTHES LTD',
-      managerName: 'Leasie Watson',
-      managerAvatar: '/distributor.png',
-      lastOrder: '10/12/2025',
-      orderValue: '100,000rwf'
-    },
-    {
-      id: 4,
-      companyName: 'AMACO CLOTHES LTD',
-      managerName: 'Leasie Watson',
-      managerAvatar: '/distributor.png',
-      lastOrder: '10/12/2025',
-      orderValue: '100,000rwf'
-    },
-    {
-      id: 5,
-      companyName: 'AMACO CLOTHES LTD',
-      managerName: 'Leasie Watson',
-      managerAvatar: '/distributor.png',
-      lastOrder: '10/12/2025',
-      orderValue: '100,000rwf'
-    },
-    {
-      id: 6,
-      companyName: 'AMACO CLOTHES LTD',
-      managerName: 'Leasie Watson',
-      managerAvatar: '/distributor.png',
-      lastOrder: '10/12/2025',
-      orderValue: '100,000rwf'
-    },
-    {
-      id: 7,
-      companyName: 'AMACO CLOTHES LTD',
-      managerName: 'Leasie Watson',
-      managerAvatar: '/distributor.png',
-      lastOrder: '10/12/2025',
-      orderValue: '100,000rwf'
-    }
-  ];
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem('accessToken');
+    return {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    };
+  };
 
   const handleViewDistributor = (distributorId) => {
     navigate(`/sales-manager/distributors/${distributorId}`);
@@ -80,8 +37,100 @@ const Distributors = () => {
     setShowDeleteModal(true);
   };
 
-  const confirmDelete = () => {
-    // Handle delete logic here
+  const fetchDistributors = async () => {
+    setLoading(true);
+    
+    try {
+      // Fetch distributors
+      const distributorsResponse = await fetch('http://localhost:8080/api/distributors', {
+        headers: getAuthHeaders()
+      });
+      
+      // Fetch orders to calculate last order and contribution
+      const ordersResponse = await fetch('http://localhost:8080/api/orders', {
+        headers: getAuthHeaders()
+      });
+      
+      if (distributorsResponse.ok && ordersResponse.ok) {
+        const distributors = await distributorsResponse.json();
+        const orders = await ordersResponse.json();
+        
+        // Process distributors with order data
+        const processedDistributors = distributors.map(distributor => {
+          const distributorOrders = orders.filter(order => 
+            order.distributorId === distributor.id || 
+            order.customerName === distributor.companyName
+          );
+          
+          const lastOrder = distributorOrders.length > 0 
+            ? new Date(Math.max(...distributorOrders.map(o => new Date(o.orderDate || o.createdAt)))).toLocaleDateString()
+            : 'No orders';
+          
+          const totalValue = distributorOrders.reduce((sum, order) => sum + (order.totalAmount || 0), 0);
+          
+          return {
+            id: distributor.id,
+            companyName: distributor.companyName || distributor.name || 'Unknown Company',
+            managerName: distributor.managerName || distributor.contactPerson || 'Unknown Manager',
+            managerAvatar: distributor.avatar || '/distributor.png',
+            lastOrder,
+            orderValue: `${totalValue.toLocaleString()}rwf`
+          };
+        });
+        
+        setDistributorsData(processedDistributors);
+        
+        // Calculate stats
+        const totalContribution = processedDistributors.reduce((sum, dist) => {
+          const value = parseInt(dist.orderValue.replace(/[^0-9]/g, '')) || 0;
+          return sum + value;
+        }, 0);
+        
+        setStats({
+          totalDistributors: distributors.length,
+          totalContribution,
+          averageRevenue: distributors.length > 0 ? Math.round(totalContribution / distributors.length) : 0,
+          loading: false
+        });
+      } else {
+        console.warn('Failed to fetch distributors or orders');
+        setDistributorsData([]);
+        setStats(prev => ({ ...prev, loading: false }));
+      }
+    } catch (error) {
+      console.error('Error fetching distributors:', error);
+      setDistributorsData([]);
+      setStats(prev => ({ ...prev, loading: false }));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchDistributors();
+  }, []);
+
+  const confirmDelete = async () => {
+    if (!selectedDistributor) return;
+    
+    try {
+      const response = await fetch(`http://localhost:8080/api/distributors/${selectedDistributor.id}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders()
+      });
+      
+      if (response.ok) {
+        // Refresh distributors list
+        fetchDistributors();
+      } else {
+        console.error('Failed to delete distributor');
+        alert('Failed to delete distributor. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error deleting distributor:', error);
+      alert('Error deleting distributor. Please try again.');
+    }
+    
     setShowDeleteModal(false);
     setSelectedDistributor(null);
   };
@@ -101,6 +150,8 @@ const Distributors = () => {
             <input
               type="text"
               placeholder="Search..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10 pr-4 py-2 w-80 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
             />
           </div>
@@ -121,7 +172,9 @@ const Distributors = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">Today Distributors</p>
-              <p className="text-2xl font-bold text-gray-900 mt-2">470</p>
+              <p className="text-2xl font-bold text-gray-900 mt-2">
+                {stats.loading ? 'Loading...' : stats.totalDistributors}
+              </p>
               <p className="text-xs text-gray-500 mt-1">Update Sep 14, 2024</p>
             </div>
             <div className="p-3 bg-purple-100 rounded-lg">
@@ -137,7 +190,9 @@ const Distributors = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">Total Distributor Contribution</p>
-              <p className="text-2xl font-bold text-gray-900 mt-2">5,000,000rwf</p>
+              <p className="text-2xl font-bold text-gray-900 mt-2">
+                {stats.loading ? 'Loading...' : `${stats.totalContribution.toLocaleString()}rwf`}
+              </p>
               <p className="text-xs text-gray-500 mt-1">Update July 14, 2024</p>
             </div>
             <div className="p-3 bg-blue-100 rounded-lg">
@@ -153,7 +208,9 @@ const Distributors = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">Average Revenue Per Account</p>
-              <p className="text-2xl font-bold text-gray-900 mt-2">560,000rwf</p>
+              <p className="text-2xl font-bold text-gray-900 mt-2">
+                {stats.loading ? 'Loading...' : `${stats.averageRevenue.toLocaleString()}rwf`}
+              </p>
               <p className="text-xs text-gray-500 mt-1">Update May 14, 2024</p>
             </div>
             <div className="p-3 bg-green-100 rounded-lg">
@@ -173,6 +230,8 @@ const Distributors = () => {
           <input
             type="text"
             placeholder="Search..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10 pr-4 py-2 w-64 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
           />
         </div>
@@ -214,7 +273,25 @@ const Distributors = () => {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {distributorsData.map((distributor) => (
+            {loading ? (
+              <tr>
+                <td colSpan="5" className="py-8 text-center text-gray-500">
+                  Loading distributors...
+                </td>
+              </tr>
+            ) : distributorsData.length === 0 ? (
+              <tr>
+                <td colSpan="5" className="py-8 text-center text-gray-500">
+                  No distributors found
+                </td>
+              </tr>
+            ) : (
+              distributorsData
+                .filter(distributor => 
+                  distributor.companyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                  distributor.managerName.toLowerCase().includes(searchTerm.toLowerCase())
+                )
+                .map((distributor) => (
               <tr key={distributor.id} className="hover:bg-gray-50">
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                   {distributor.companyName}
@@ -250,7 +327,8 @@ const Distributors = () => {
                   </button>
                 </td>
               </tr>
-            ))}
+                ))
+            )}
           </tbody>
         </table>
       </div>

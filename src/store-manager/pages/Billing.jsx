@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Search, Filter, MoreVertical, Eye, CreditCard, Download, FileText } from 'lucide-react'
 
@@ -7,19 +7,59 @@ const Billing = () => {
   const [searchTerm, setSearchTerm] = useState('')
   const [showActionsDropdown, setShowActionsDropdown] = useState(false)
   const [showRowActions, setShowRowActions] = useState(null)
+  const [invoices, setInvoices] = useState([])
+  const [loading, setLoading] = useState(true)
 
-  const invoices = [
-    { id: 1, invoice: 'INV001', order: 'ORD001', distributorName: 'Ronald Richards', amountDue: '2,000,000 rwf', invoiceAmount: '2,000,000 rwf', status: 'Paid', issueDate: '2/2/2025', dueDate: '2/2/2025', invoiceNumber: '1222554567891ED' },
-    { id: 2, invoice: 'INV002', order: 'ORD002', distributorName: 'Ronald Richards', amountDue: '2,000,000 rwf', invoiceAmount: '2,000,000 rwf', status: 'Pending', issueDate: '2/2/2025', dueDate: '2/2/2025', invoiceNumber: '1222554567891ED' },
-    { id: 3, invoice: 'INV003', order: 'ORD003', distributorName: 'Ronald Richards', amountDue: '2,000,000 rwf', invoiceAmount: '2,000,000 rwf', status: 'Paid', issueDate: '6/6/2025', dueDate: '2/2/2025', invoiceNumber: '1222554567891ED' },
-    { id: 4, invoice: 'INV004', order: 'ORD004', distributorName: 'Ronald Richards', amountDue: '2,000,000 rwf', invoiceAmount: '2,000,000 rwf', status: 'Overdue', issueDate: '2/2/2025', dueDate: '2/2/2025', invoiceNumber: '1222554567891ED' },
-    { id: 5, invoice: 'INV005', order: 'ORD005', distributorName: 'Ronald Richards', amountDue: '2,000,000 rwf', invoiceAmount: '2,000,000 rwf', status: 'Paid', issueDate: '2/2/2025', dueDate: '2/2/2025', invoiceNumber: '1222554567891ED' },
-    { id: 6, invoice: 'INV006', order: 'ORD006', distributorName: 'Ronald Richards', amountDue: '2,000,000 rwf', invoiceAmount: '2,000,000 rwf', status: 'Pending', issueDate: '2/2/2025', dueDate: '2/2/2025', invoiceNumber: '1222554567891ED' },
-    { id: 7, invoice: 'INV007', order: 'ORD007', distributorName: 'Ronald Richards', amountDue: '2,000,000 rwf', invoiceAmount: '2,000,000 rwf', status: 'Paid', issueDate: '2/2/2025', dueDate: '2/2/2025', invoiceNumber: '1222554567891ED' },
-    { id: 8, invoice: 'INV008', order: 'ORD008', distributorName: 'Ronald Richards', amountDue: '2,000,000 rwf', invoiceAmount: '2,000,000 rwf', status: 'Pending', issueDate: '2/2/2025', dueDate: '2/2/2025', invoiceNumber: '1222554567891ED' },
-    { id: 9, invoice: 'INV009', order: 'ORD009', distributorName: 'Ronald Richards', amountDue: '2,000,000 rwf', invoiceAmount: '2,000,000 rwf', status: 'Paid', issueDate: '2/2/2025', dueDate: '2/2/2025', invoiceNumber: '1222554567891ED' },
-    { id: 10, invoice: 'INV010', order: 'ORD010', distributorName: 'Ronald Richards', amountDue: '2,000,000 rwf', invoiceAmount: '2,000,000 rwf', status: 'Paid', issueDate: '2/2/2025', dueDate: '2/2/2025', invoiceNumber: '1222554567891ED' },
-  ]
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem('accessToken');
+    return {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    };
+  };
+
+  const fetchInvoices = async () => {
+    setLoading(true);
+    
+    try {
+      const response = await fetch('http://localhost:8080/api/invoices', {
+        headers: getAuthHeaders()
+      });
+      
+      if (response.ok) {
+        const invoicesData = await response.json();
+        
+        // Process invoices data for display
+        const processedInvoices = invoicesData.map(invoice => ({
+          id: invoice.id,
+          invoice: invoice.invoiceNumber || `INV${String(invoice.id).padStart(3, '0')}`,
+          order: invoice.orderNumber || invoice.orderId || `ORD${String(invoice.id).padStart(3, '0')}`,
+          distributorName: invoice.customerName || invoice.distributorName || 'Unknown Customer',
+          amountDue: `${invoice.amountDue || invoice.totalAmount || 0} rwf`,
+          invoiceAmount: `${invoice.totalAmount || invoice.amount || 0} rwf`,
+          status: invoice.status || 'Pending',
+          issueDate: invoice.issueDate ? new Date(invoice.issueDate).toLocaleDateString() : 
+                    invoice.createdAt ? new Date(invoice.createdAt).toLocaleDateString() : 'N/A',
+          dueDate: invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString() : 'N/A',
+          invoiceNumber: invoice.invoiceNumber || `INV${String(invoice.id).padStart(10, '0')}`
+        }));
+        
+        setInvoices(processedInvoices);
+      } else {
+        console.warn('Failed to fetch invoices:', response.statusText);
+        setInvoices([]);
+      }
+    } catch (error) {
+      console.warn('Error fetching invoices:', error);
+      setInvoices([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchInvoices();
+  }, []);
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -143,7 +183,20 @@ const Billing = () => {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {invoices.map((invoice) => (
+            {loading ? (
+              <tr>
+                <td colSpan="9" className="py-8 text-center text-gray-500">
+                  Loading invoices...
+                </td>
+              </tr>
+            ) : invoices.length === 0 ? (
+              <tr>
+                <td colSpan="9" className="py-8 text-center text-gray-500">
+                  No invoices found
+                </td>
+              </tr>
+            ) : (
+              invoices.map((invoice) => (
               <tr key={invoice.id} className="hover:bg-gray-50">
                 <td className="px-6 py-4 whitespace-nowrap">
                   <button 
@@ -212,7 +265,8 @@ const Billing = () => {
                   </div>
                 </td>
               </tr>
-            ))}
+              ))
+            )}
           </tbody>
         </table>
       </div>

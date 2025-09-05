@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, Filter, MoreHorizontal, Eye, CreditCard, Send, FileText, Download } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -6,140 +6,94 @@ const Invoices = () => {
   const navigate = useNavigate();
   const [showFilter, setShowFilter] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [invoices, setInvoices] = useState([]);
 
-  // Sample invoices data
-  const invoices = [
-    {
-      id: 1,
-      invoice: '01',
-      order: '01',
-      distributorName: 'Ronald Richards',
-      distributorAvatar: '/distributor.png',
-      amountDue: '2,000,000rwf',
-      invoiceAmount: '2,000,000rwf',
-      status: 'Paid',
-      statusColor: 'bg-green-100 text-green-800',
-      issueDate: '2/2/2025',
-      dueDate: '2/2/2025'
-    },
-    {
-      id: 2,
-      invoice: '01',
-      order: '01',
-      distributorName: 'Ronald Richards',
-      distributorAvatar: '/distributor.png',
-      amountDue: '2,000,000rwf',
-      invoiceAmount: '2,000,000rwf',
-      status: 'Partially Paid',
-      statusColor: 'bg-yellow-100 text-yellow-800',
-      issueDate: '2/2/2025',
-      dueDate: '2/2/2025'
-    },
-    {
-      id: 3,
-      invoice: '01',
-      order: '01',
-      distributorName: 'Ronald Richards',
-      distributorAvatar: '/distributor.png',
-      amountDue: '2,000,000rwf',
-      invoiceAmount: '2,000,000rwf',
-      status: 'Paid',
-      statusColor: 'bg-green-100 text-green-800',
-      issueDate: '2/2/2025',
-      dueDate: '2/2/2025'
-    },
-    {
-      id: 4,
-      invoice: '01',
-      order: '01',
-      distributorName: 'Ronald Richards',
-      distributorAvatar: '/distributor.png',
-      amountDue: '2,000,000rwf',
-      invoiceAmount: '2,000,000rwf',
-      status: 'Paid',
-      statusColor: 'bg-green-100 text-green-800',
-      issueDate: '2/2/2025',
-      dueDate: '2/2/2025'
-    },
-    {
-      id: 5,
-      invoice: '01',
-      order: '01',
-      distributorName: 'Ronald Richards',
-      distributorAvatar: '/distributor.png',
-      amountDue: '2,000,000rwf',
-      invoiceAmount: '2,000,000rwf',
-      status: 'Pending',
-      statusColor: 'bg-yellow-100 text-yellow-800',
-      issueDate: '2/2/2025',
-      dueDate: '2/2/2025'
-    },
-    {
-      id: 6,
-      invoice: '01',
-      order: '01',
-      distributorName: 'Ronald Richards',
-      distributorAvatar: '/distributor.png',
-      amountDue: '2,000,000rwf',
-      invoiceAmount: '2,000,000rwf',
-      status: 'Pending',
-      statusColor: 'bg-yellow-100 text-yellow-800',
-      issueDate: '2/2/2025',
-      dueDate: '2/2/2025'
-    },
-    {
-      id: 7,
-      invoice: '01',
-      order: '01',
-      distributorName: 'Ronald Richards',
-      distributorAvatar: '/distributor.png',
-      amountDue: '2,000,000rwf',
-      invoiceAmount: '2,000,000rwf',
-      status: 'Pending',
-      statusColor: 'bg-yellow-100 text-yellow-800',
-      issueDate: '2/2/2025',
-      dueDate: '2/2/2025'
-    },
-    {
-      id: 8,
-      invoice: '01',
-      order: '01',
-      distributorName: 'Ronald Richards',
-      distributorAvatar: '/distributor.png',
-      amountDue: '2,000,000rwf',
-      invoiceAmount: '2,000,000rwf',
-      status: 'Pending',
-      statusColor: 'bg-yellow-100 text-yellow-800',
-      issueDate: '2/2/2025',
-      dueDate: '2/2/2025'
-    },
-    {
-      id: 9,
-      invoice: '01',
-      order: '01',
-      distributorName: 'Ronald Richards',
-      distributorAvatar: '/distributor.png',
-      amountDue: '2,000,000rwf',
-      invoiceAmount: '2,000,000rwf',
-      status: 'Pending',
-      statusColor: 'bg-yellow-100 text-yellow-800',
-      issueDate: '2/2/2025',
-      dueDate: '2/2/2025'
-    },
-    {
-      id: 10,
-      invoice: '01',
-      order: '01',
-      distributorName: 'Ronald Richards',
-      distributorAvatar: '/distributor.png',
-      amountDue: '2,000,000rwf',
-      invoiceAmount: '2,000,000rwf',
-      status: 'Pending',
-      statusColor: 'bg-yellow-100 text-yellow-800',
-      issueDate: '2/2/2025',
-      dueDate: '2/2/2025'
+  // Helper function to get authentication headers
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem('accessToken');
+    return {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    };
+  };
+
+  // Helper function to get status color
+  const getStatusColor = (status) => {
+    switch (status?.toLowerCase()) {
+      case 'paid':
+        return 'bg-green-100 text-green-800';
+      case 'partially paid':
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'overdue':
+        return 'bg-red-100 text-red-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
     }
-  ];
+  };
+
+  // Fetch invoices data
+  const fetchInvoices = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch('http://localhost:8080/api/invoices', {
+        headers: getAuthHeaders()
+      });
+      if (response.ok) {
+        const invoicesData = await response.json();
+        const processedInvoices = invoicesData.map(invoice => ({
+          id: invoice.id,
+          invoice: invoice.invoiceNumber || invoice.id,
+          order: invoice.orderId || invoice.orderNumber || 'N/A',
+          distributorName: invoice.customerName || invoice.distributorName || 'Unknown Distributor',
+          distributorAvatar: '/distributor.png',
+          amountDue: `${(invoice.amountDue || invoice.totalAmount || 0).toLocaleString()}rwf`,
+          invoiceAmount: `${(invoice.totalAmount || invoice.amount || 0).toLocaleString()}rwf`,
+          status: invoice.status || 'Pending',
+          statusColor: getStatusColor(invoice.status),
+          issueDate: new Date(invoice.issueDate || invoice.createdAt).toLocaleDateString(),
+          dueDate: new Date(invoice.dueDate || invoice.paymentDue).toLocaleDateString()
+        }));
+        setInvoices(processedInvoices);
+      } else {
+        setInvoices([]);
+      }
+    } catch (error) {
+      console.error('Error fetching invoices:', error);
+      setInvoices([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Send reminder for invoice
+  const handleSendReminder = async (invoiceId) => {
+    try {
+      const response = await fetch(`http://localhost:8080/api/invoices/${invoiceId}/reminder`, {
+        method: 'POST',
+        headers: getAuthHeaders()
+      });
+      if (response.ok) {
+        alert('Reminder sent successfully!');
+      }
+    } catch (error) {
+      console.error('Error sending reminder:', error);
+      alert('Failed to send reminder');
+    }
+  };
+
+  // Filter invoices based on search term
+  const filteredInvoices = invoices.filter(invoice =>
+    invoice.distributorName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    invoice.invoice.toString().includes(searchTerm.toLowerCase()) ||
+    invoice.order.toString().includes(searchTerm.toLowerCase())
+  );
+
+  useEffect(() => {
+    fetchInvoices();
+  }, []);
 
   const handleActionClick = (action, invoiceId) => {
     setActiveDropdown(null);
@@ -198,6 +152,8 @@ const Invoices = () => {
             <input
               type="text"
               placeholder="Search..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent w-80"
             />
           </div>
@@ -237,7 +193,20 @@ const Invoices = () => {
                 </tr>
               </thead>
               <tbody>
-                {invoices.map((invoice) => (
+                {loading ? (
+                  <tr>
+                    <td colSpan="9" className="py-8 text-center text-gray-500">
+                      Loading invoices...
+                    </td>
+                  </tr>
+                ) : filteredInvoices.length === 0 ? (
+                  <tr>
+                    <td colSpan="9" className="py-8 text-center text-gray-500">
+                      No invoices found
+                    </td>
+                  </tr>
+                ) : (
+                  filteredInvoices.map((invoice) => (
                   <tr key={invoice.id} className="border-b border-gray-100 hover:bg-gray-50">
                     <td className="py-4 px-6">
                       <div className="flex items-center space-x-2">
@@ -309,7 +278,7 @@ const Invoices = () => {
                                 <span>Record Payment</span>
                               </button>
                               <button 
-                                onClick={() => handleActionClick('send-reminder', invoice.id)}
+                                onClick={() => handleSendReminder(invoice.id)}
                                 className="flex items-center space-x-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
                               >
                                 <Send className="w-4 h-4" />
@@ -335,7 +304,8 @@ const Invoices = () => {
                       </div>
                     </td>
                   </tr>
-                ))}
+                  ))
+                )}
               </tbody>
             </table>
           </div>

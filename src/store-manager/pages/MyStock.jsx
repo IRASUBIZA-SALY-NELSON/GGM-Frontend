@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Search, Filter, ShoppingCart, MoreVertical, Package, Eye } from 'lucide-react'
 import SpecifyQuantityModal from '../modals/SpecifyQuantityModal'
@@ -12,18 +12,58 @@ const MyStock = () => {
   const [showRemoveModal, setShowRemoveModal] = useState(false)
   const [showUpdateModal, setShowUpdateModal] = useState(false)
   const [selectedProduct, setSelectedProduct] = useState(null)
-  const [showActionsDropdown, setShowActionsDropdown] = useState(null)
   const [showProductActions, setShowProductActions] = useState(null)
   const [cart, setCart] = useState([])
+  const [products, setProducts] = useState([])
+  const [loading, setLoading] = useState(true)
 
-  const products = [
-    { id: 1, name: 'Skinny Jeans', category: 'Casual Wear', currentStock: 120, unitPrice: 4500, image: '1.png', status: 'Active' },
-    { id: 2, name: 'Skinny Jeans', category: 'Casual Wear', currentStock: 135, unitPrice: 5200, image: '2.png', status: 'Active' },
-    { id: 3, name: 'Skinny Jeans', category: 'Casual Wear', currentStock: 89, unitPrice: 4800, image: '1.png', status: 'Active' },
-    { id: 4, name: 'Skinny Jeans', category: 'Casual Wear', currentStock: 156, unitPrice: 5500, image: '2.png', status: 'Active' },
-    { id: 5, name: 'Skinny Jeans', category: 'Casual Wear', currentStock: 142, unitPrice: 4900, image: '1.png', status: 'Active' },
-    { id: 6, name: 'Skinny Jeans', category: 'Casual Wear', currentStock: 98, unitPrice: 5100, image: '2.png', status: 'Active' },
-  ]
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem('accessToken');
+    return {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    };
+  };
+
+  const fetchProducts = async () => {
+    setLoading(true);
+    
+    try {
+      const response = await fetch('http://localhost:8080/api/inventories', {
+        headers: getAuthHeaders()
+      });
+      
+      if (response.ok) {
+        const inventory = await response.json();
+        
+        // Process inventory data for display
+        const processedProducts = inventory.map(item => ({
+          id: item.id,
+          name: item.productName || item.name || 'Unknown Product',
+          category: item.category || 'Uncategorized',
+          currentStock: item.currentStock || 0,
+          unitPrice: item.unitPrice || 0,
+          image: item.imageUrl || '1.png',
+          status: item.currentStock > (item.minStockLevel || 10) ? 'Active' : 'Low Stock',
+          minStockLevel: item.minStockLevel || 10
+        }));
+        
+        setProducts(processedProducts);
+      } else {
+        console.warn('Failed to fetch inventory:', response.statusText);
+        setProducts([]);
+      }
+    } catch (error) {
+      console.warn('Error fetching inventory:', error);
+      setProducts([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchProducts();
+  }, []);
 
   const handleReorderClick = (product) => {
     setSelectedProduct(product)
@@ -59,9 +99,6 @@ const MyStock = () => {
     navigate('/store-manager/reorder-cart', { state: { cartItems: cart } })
   }
 
-  const toggleActionsDropdown = (productId) => {
-    setShowActionsDropdown(showActionsDropdown === productId ? null : productId)
-  }
 
   const toggleProductActions = (productId) => {
     setShowProductActions(showProductActions === productId ? null : productId)
@@ -76,50 +113,10 @@ const MyStock = () => {
     <div className="p-6 bg-gray-50 min-h-screen">
       {/* Header */}
       <div className="mb-6">
-        <div className="flex items-center justify-between mb-4">
+        <div className="mb-4">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Stock Management</h1>
             <p className="text-sm text-gray-500">Control the inventory</p>
-          </div>
-          
-          <div className="flex items-center space-x-4">
-            {/* Search */}
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 pr-4 py-2 w-64 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-              />
-            </div>
-            
-            {/* Actions Dropdown */}
-            <div className="relative">
-              <button 
-                onClick={() => toggleActionsDropdown('header')}
-                className="flex items-center space-x-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
-              >
-                <span>Actions</span>
-                <MoreVertical className="w-4 h-4" />
-              </button>
-              
-              {showActionsDropdown === 'header' && (
-                <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-10">
-                  <div className="py-2">
-                    <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-2">
-                      <ShoppingCart className="w-4 h-4" />
-                      <span>Reorder</span>
-                    </button>
-                    <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-2">
-                      <Search className="w-4 h-4" />
-                      <span>View History</span>
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
           </div>
         </div>
 
@@ -130,6 +127,8 @@ const MyStock = () => {
             <input
               type="text"
               placeholder="Search"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10 pr-4 py-2 w-80 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
             />
           </div>
@@ -153,7 +152,16 @@ const MyStock = () => {
 
       {/* Products Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-        {products.map((product) => (
+        {loading ? (
+          <div className="col-span-full py-8 text-center text-gray-500">
+            Loading products...
+          </div>
+        ) : products.length === 0 ? (
+          <div className="col-span-full py-8 text-center text-gray-500">
+            No products found in inventory
+          </div>
+        ) : (
+          products.map((product) => (
           <div key={product.id} className="bg-white rounded-lg border border-gray-200 overflow-hidden">
             <div className="relative">
               <div className="w-full h-48 bg-gray-100 flex items-center justify-center overflow-hidden">
@@ -163,7 +171,9 @@ const MyStock = () => {
                   className="w-full h-full object-cover"
                 />
               </div>
-              <span className="absolute top-2 left-2 bg-green-500 text-white text-xs px-2 py-1 rounded">
+              <span className={`absolute top-2 left-2 text-white text-xs px-2 py-1 rounded ${
+                product.status === 'Active' ? 'bg-green-500' : 'bg-red-500'
+              }`}>
                 {product.status}
               </span>
             </div>
@@ -221,7 +231,8 @@ const MyStock = () => {
               </div>
             </div>
           </div>
-        ))}
+          ))
+        )}
       </div>
 
       {/* Pagination */}

@@ -1,85 +1,119 @@
-import React, { useState } from 'react';
-import { Search, Filter, ChevronDown } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Search, Filter, Plus, Eye, Edit, Trash2, ChevronDown } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 
 const StockTransfers = () => {
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('requested');
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedStatus, setSelectedStatus] = useState('All Status');
+  const [transfersData, setTransfersData] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // Sample transfer data
-  const transfersData = [
-    {
-      id: 1,
-      source: "Main Factory Warehouse",
-      destination: "City Electronics Store",
-      requestedBy: "Ronald Richards",
-      items: "100 units",
-      date: "10/12/2025"
-    },
-    {
-      id: 2,
-      source: "Main Factory Warehouse",
-      destination: "City Electronics Store",
-      requestedBy: "Ronald Richards",
-      items: "100 units",
-      date: "10/12/2025"
-    },
-    {
-      id: 3,
-      source: "Main Factory Warehouse",
-      destination: "City Electronics Store",
-      requestedBy: "Ronald Richards",
-      items: "100 units",
-      date: "10/12/2025"
-    },
-    {
-      id: 4,
-      source: "Main Factory Warehouse",
-      destination: "City Electronics Store",
-      requestedBy: "Ronald Richards",
-      items: "100 units",
-      date: "10/12/2025"
-    },
-    {
-      id: 5,
-      source: "Main Factory Warehouse",
-      destination: "City Electronics Store",
-      requestedBy: "Ronald Richards",
-      items: "100 units",
-      date: "10/12/2025"
-    },
-    {
-      id: 6,
-      source: "Main Factory Warehouse",
-      destination: "City Electronics Store",
-      requestedBy: "Ronald Richards",
-      items: "100 units",
-      date: "10/12/2025"
-    },
-    {
-      id: 7,
-      source: "Main Factory Warehouse",
-      destination: "City Electronics Store",
-      requestedBy: "Ronald Richards",
-      items: "100 units",
-      date: "10/12/2025"
-    },
-    {
-      id: 8,
-      source: "Main Factory Warehouse",
-      destination: "City Electronics Store",
-      requestedBy: "Ronald Richards",
-      items: "100 units",
-      date: "10/12/2025"
-    },
-    {
-      id: 9,
-      source: "Main Factory Warehouse",
-      destination: "City Electronics Store",
-      requestedBy: "Ronald Richards",
-      items: "100 units",
-      date: "10/12/2025"
+  const getUserDisplayName = () => {
+    if (user?.name) return user.name;
+    if (user?.firstName && user?.lastName) return `${user.firstName} ${user.lastName}`;
+    if (user?.email) return user.email.split('@')[0];
+    return 'User';
+  };
+
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem('accessToken');
+    return {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    };
+  };
+
+  const getStatusForTab = (tabId) => {
+    const statusMap = {
+      'requested': ['REQUESTED', 'PENDING'],
+      'in-progress': ['IN_PROGRESS', 'APPROVED'],
+      'shipped': ['SHIPPED'],
+      'delivered': ['DELIVERED', 'COMPLETED']
+    };
+    return statusMap[tabId] || [];
+  };
+
+  const fetchTransfers = async () => {
+    setLoading(true);
+    
+    try {
+      const response = await fetch('http://localhost:8080/api/stock-transfers', {
+        headers: getAuthHeaders()
+      });
+      
+      if (response.ok) {
+        const transfers = await response.json();
+        
+        // Filter transfers based on active tab
+        const statusesToShow = getStatusForTab(activeTab);
+        const filteredTransfers = transfers.filter(transfer => 
+          statusesToShow.includes(transfer.status)
+        );
+        
+        // Process transfers for display
+        const processedTransfers = filteredTransfers.map(transfer => ({
+          id: transfer.id,
+          source: transfer.sourceLocation || transfer.fromWarehouse || 'Unknown Source',
+          destination: transfer.destinationLocation || transfer.toWarehouse || 'Unknown Destination',
+          requestedBy: transfer.requestedByName || transfer.createdByName || 'Unknown User',
+          items: `${transfer.totalQuantity || 0} units`,
+          date: transfer.requestedDate ? new Date(transfer.requestedDate).toLocaleDateString() : 
+                transfer.createdAt ? new Date(transfer.createdAt).toLocaleDateString() : 'Unknown',
+          status: transfer.status,
+          createdAt: transfer.createdAt || transfer.requestedDate
+        }));
+        
+        setTransfersData(processedTransfers);
+      } else {
+        console.warn('Failed to fetch stock transfers:', response.statusText);
+        setTransfersData([]);
+      }
+    } catch (error) {
+      console.warn('Error fetching stock transfers:', error);
+      setTransfersData([]);
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
+
+  const updateTransferStatus = async (transferId, newStatus) => {
+    try {
+      const response = await fetch(`http://localhost:8080/api/stock-transfers/${transferId}/status`, {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ status: newStatus })
+      });
+      
+      if (response.ok) {
+        // Refresh transfers after status update
+        fetchTransfers();
+      } else {
+        console.warn('Failed to update transfer status:', response.statusText);
+      }
+    } catch (error) {
+      console.warn('Error updating transfer status:', error);
+    }
+  };
+
+  const handleActionClick = (transferId) => {
+    const nextStatusMap = {
+      'requested': 'IN_PROGRESS',
+      'in-progress': 'SHIPPED',
+      'shipped': 'DELIVERED',
+      'delivered': 'COMPLETED'
+    };
+    
+    const nextStatus = nextStatusMap[activeTab];
+    if (nextStatus) {
+      updateTransferStatus(transferId, nextStatus);
+    }
+  };
+
+  useEffect(() => {
+    fetchTransfers();
+  }, [activeTab]);
 
   const tabs = [
     {
@@ -145,20 +179,6 @@ const StockTransfers = () => {
             <div className="text-sm text-gray-500 mb-1">{currentTab.step} {currentTab.title}</div>
             <h1 className="text-2xl font-semibold text-gray-900">Stock Transfers</h1>
             <p className="text-sm text-gray-500">{currentTab.subtitle}</p>
-          </div>
-          <div className="flex items-center space-x-3">
-            <div className="flex items-center space-x-2">
-              <img 
-                src="/distributor.png" 
-                alt="Robert Allen" 
-                className="w-8 h-8 rounded-full"
-              />
-              <div className="text-right">
-                <div className="text-sm font-medium text-gray-700">Robert Allen</div>
-                <div className="text-xs text-gray-500">Warehouse Manager</div>
-              </div>
-              <ChevronDown className="w-4 h-4 text-gray-500" />
-            </div>
           </div>
         </div>
       </div>
@@ -231,7 +251,20 @@ const StockTransfers = () => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {transfersData.map((transfer) => (
+                {loading ? (
+                  <tr>
+                    <td colSpan="6" className="py-8 text-center text-gray-500">
+                      Loading transfers...
+                    </td>
+                  </tr>
+                ) : transfersData.length === 0 ? (
+                  <tr>
+                    <td colSpan="6" className="py-8 text-center text-gray-500">
+                      No transfers found for this status
+                    </td>
+                  </tr>
+                ) : (
+                  transfersData.map((transfer) => (
                   <tr key={transfer.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 text-sm text-gray-900">{transfer.source}</td>
                     <td className="px-6 py-4 text-sm text-gray-900">{transfer.destination}</td>
@@ -248,12 +281,16 @@ const StockTransfers = () => {
                     <td className="px-6 py-4 text-sm text-gray-900">{transfer.items}</td>
                     <td className="px-6 py-4 text-sm text-gray-900">{transfer.date}</td>
                     <td className="px-6 py-4">
-                      <button className={`${actionButton.color} text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors`}>
+                      <button 
+                        onClick={() => handleActionClick(transfer.id)}
+                        className={`${actionButton.color} text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors`}
+                      >
                         {actionButton.text}
                       </button>
                     </td>
                   </tr>
-                ))}
+                  ))
+                )}
               </tbody>
             </table>
           </div>

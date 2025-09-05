@@ -60,10 +60,15 @@ import AccountantOrders from './accountant/pages/Orders';
 import AccountantOrderDetails from './accountant/pages/OrderDetails';
 import AccountantLayout from './accountant/components/AccountantLayout';
 import NotFound from './pages/NotFound'
+import RoleBasedRedirect from './components/RoleBasedRedirect'
 
 // Auth Pages
 import Login from './pages/auth/Login'
 import Register from './pages/auth/Register'
+import TenantRegister from './pages/auth/TenantRegister'
+import SystemUserRegister from './pages/auth/SystemUserRegister'
+import TenantSuccess from './pages/auth/TenantSuccess'
+import UserSuccess from './pages/auth/UserSuccess'
 import ForgotPassword from './pages/auth/ForgotPassword'
 import VerifyOTP from './pages/auth/VerifyOTP'
 import ResetPassword from './pages/auth/ResetPassword'
@@ -77,13 +82,17 @@ function App() {
         {/* Public Routes */}
         <Route path="/auth/login" element={<Login />} />
         <Route path="/auth/register" element={<Register />} />
+        <Route path="/auth/tenant-register" element={<TenantRegister />} />
+        <Route path="/auth/system-user-register" element={<SystemUserRegister />} />
+        <Route path="/auth/tenant-success" element={<TenantSuccess />} />
+        <Route path="/auth/user-success" element={<UserSuccess />} />
         <Route path="/auth/forgot-password" element={<ForgotPassword />} />
         <Route path="/auth/verify-otp" element={<VerifyOTP />} />
         <Route path="/auth/reset-password" element={<ResetPassword />} />
         <Route path="/auth/success" element={<Success />} />
         
         {/* Protected Routes */}
-        <Route path="/" element={<Navigate to="/admin/dashboard" replace />} />
+        <Route path="/" element={<ProtectedRoute><RoleBasedRedirect /></ProtectedRoute>} />
         <Route path="/admin/dashboard" element={
           <ProtectedRoute>
             <Layout>

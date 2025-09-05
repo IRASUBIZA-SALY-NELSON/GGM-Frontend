@@ -1,4 +1,5 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { 
   Users, 
   TrendingUp,
@@ -12,10 +13,108 @@ import {
 } from 'lucide-react'
 
 const Dashboard = () => {
+  const navigate = useNavigate()
+  const [users, setUsers] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+
+  useEffect(() => {
+    fetchUsers()
+  }, [])
+
+  const fetchUsers = async () => {
+    try {
+      const token = localStorage.getItem('accessToken')
+      const response = await fetch('http://localhost:8081/api/users', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      })
+
+      if (response.ok) {
+        const userData = await response.json()
+        setUsers(userData)
+        console.log('📊 Users fetched:', userData)
+      } else {
+        throw new Error('Failed to fetch users')
+      }
+    } catch (error) {
+      console.error('❌ Error fetching users:', error)
+      setError(error.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const getRoleDisplayName = (role) => {
+    const roleMap = {
+      'ADMIN': 'Administrator',
+      'MANAGER': 'Manager',
+      'SALES_MANAGER': 'Sales Manager',
+      'STORE_MANAGER': 'Store Manager',
+      'WAREHOUSE_MANAGER': 'Warehouse Manager',
+      'ACCOUNTANT': 'Accountant',
+      'USER': 'User'
+    }
+    return roleMap[role] || role
+  }
+
+  const getUserInitials = (firstName, lastName) => {
+    if (firstName && lastName) {
+      return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase()
+    }
+    if (firstName) {
+      return firstName.charAt(0).toUpperCase()
+    }
+    return 'U'
+  }
+
+  const formatDateTime = (dateTime) => {
+    if (!dateTime) return 'N/A'
+    const date = new Date(dateTime)
+    return date.toLocaleTimeString('en-US', { 
+      hour: '2-digit', 
+      minute: '2-digit',
+      hour12: true 
+    })
+  }
+
+  const getLastActivity = (activities) => {
+    if (!activities || activities.length === 0) return 'No activity'
+    const lastActivity = activities[activities.length - 1]
+    return lastActivity.activityName || 'Recent activity'
+  }
+
+  // Calculate user role statistics
+  const calculateRoleStats = () => {
+    const roleCount = {}
+    const totalUsers = users.length
+
+    users.forEach(user => {
+      const role = getRoleDisplayName(user.role)
+      roleCount[role] = (roleCount[role] || 0) + 1
+    })
+
+    return Object.entries(roleCount).map(([role, count], index) => ({
+      name: role,
+      count: `${count} people`,
+      percentage: totalUsers > 0 ? Math.round((count / totalUsers) * 100) : 0,
+      color: [
+        'bg-purple-600',
+        'bg-purple-500', 
+        'bg-purple-400',
+        'bg-purple-300',
+        'bg-purple-200',
+        'bg-purple-100'
+      ][index % 6]
+    }))
+  }
   const stats = [
     {
       title: 'Total Users',
-      value: '560',
+      value: users.length.toString(),
       change: '+2%',
       changeType: 'increase',
       period: 'Today, July 12, 2023',
@@ -23,45 +122,41 @@ const Dashboard = () => {
     },
     {
       title: 'Total Revenue',
-      value: '1,050,000 rwf',
+      value: '000 rwf',
       change: '+8%',
       changeType: 'increase',
       period: 'Today, July 12, 2023',
     },
     {
       title: 'Today Distributors',
-      value: '470',
+      value: '0',
       change: '-5%',
       changeType: 'decrease',
       period: 'Today, July 12, 2023',
     },
     {
       title: 'Total Orders',
-      value: '250',
+      value: '0',
       change: '+3%',
       changeType: 'increase',
       period: 'Today, July 12, 2023',
     },
   ]
 
-  const userRoles = [
-    { name: 'Administrators', percentage: 30, count: '70 people', color: 'bg-purple-600' },
-    { name: 'Warehouse Managers', percentage: 25, count: '21 people', color: 'bg-purple-500' },
-    { name: 'Sales Managers', percentage: 20, count: '50 people', color: 'bg-purple-400' },
-    { name: 'Sales Assistants', percentage: 15, count: '20 people', color: 'bg-purple-300' },
-    { name: 'Accountant', percentage: 5, count: '15 people', color: 'bg-purple-200' },
-    { name: 'Store Manager', percentage: 5, count: '10 people', color: 'bg-purple-100' },
-  ]
+  const userRoles = calculateRoleStats()
 
-  const recentUsers = [
-    { name: 'Leslie Monson', action: 'Delete User', role: 'Administrator', time: '09:21 AM', avatar: 'LM' },
-    { name: 'Darlene Robertson', action: 'Approve Order', role: 'Store Manager', time: '10:15 AM', avatar: 'DR' },
-    { name: 'Jacob Jones', action: 'Approve Order', role: 'Accountant', time: '10:24 AM', avatar: 'JJ' },
-    { name: 'Kathryn Murphy', action: 'Place Order', role: 'Accountant', time: '09:10 AM', avatar: 'KM' },
-    { name: 'Leslie Alexander', action: 'Delete Order', role: 'Store Manager', time: '09:15 AM', avatar: 'LA' },
-    { name: 'Ronald Richards', action: 'Update Profile', role: 'Administrator', time: '09:49 AM', avatar: 'RR' },
-    { name: 'Jenny Wilson', action: 'Update Report', role: 'Accountant', time: '11:50 AM', avatar: 'JW' },
-  ]
+  // Navigation handlers for Quick Links
+  const handleUserManagement = () => {
+    navigate('/admin/user-management')
+  }
+
+  const handleAddNewUser = () => {
+    navigate('/admin/user-management', { state: { openAddModal: true } })
+  }
+
+  const handleSettings = () => {
+    navigate('/admin/settings')
+  }
 
   return (
         <div className="flex-1 p-6 bg-gray-50 min-h-screen">
@@ -156,7 +251,7 @@ const Dashboard = () => {
                     </svg>
                     <div className="absolute inset-0 flex items-center justify-center">
                       <div className="text-center">
-                        <div className="text-2xl font-bold text-gray-900">560</div>
+                        <div className="text-2xl font-bold text-gray-900">{users.length}</div>
                         <div className="text-sm text-gray-500">Total</div>
                       </div>
                     </div>
@@ -183,32 +278,64 @@ const Dashboard = () => {
               {/* Recently Created Users */}
               <div className="bg-white rounded-lg p-6 border border-gray-200">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-gray-900">Recently Created User</h3>
+                  <h3 className="text-lg font-semibold text-gray-900">Recently Created Users</h3>
                   <button className="text-sm text-purple-600 hover:text-purple-700">View All</button>
                 </div>
                 
-                <div className="space-y-4">
-                  <div className="grid grid-cols-4 gap-4 text-xs font-medium text-gray-500 pb-2 border-b border-gray-100">
-                    <span>User Name</span>
-                    <span>Last Action</span>
-                    <span>User Role</span>
-                    <span>Created At</span>
+                {loading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
                   </div>
-                  
-                  {recentUsers.map((user, index) => (
-                    <div key={index} className="grid grid-cols-4 gap-4 items-center py-2">
-                      <div className="flex items-center space-x-2">
-                        <div className="w-6 h-6 bg-purple-600 rounded-full flex items-center justify-center">
-                          <span className="text-white text-xs font-medium">{user.avatar}</span>
-                        </div>
-                        <span className="text-sm text-gray-900 truncate">{user.name}</span>
-                      </div>
-                      <span className="text-sm text-gray-600 truncate">{user.action}</span>
-                      <span className="text-sm text-gray-600 truncate">{user.role}</span>
-                      <span className="text-sm text-gray-500">{user.time}</span>
+                ) : error ? (
+                  <div className="text-center py-8">
+                    <p className="text-red-600">Error loading users: {error}</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-4 gap-4 text-xs font-medium text-gray-500 pb-2 border-b border-gray-100">
+                      <span>User Name</span>
+                      <span>Last Activity</span>
+                      <span>User Role</span>
+                      <span>Status</span>
                     </div>
-                  ))}
-                </div>
+                    
+                    {users.slice(0, 7).map((user, index) => (
+                      <div key={user.id || index} className="grid grid-cols-4 gap-4 items-center py-2">
+                        <div className="flex items-center space-x-2">
+                          <div className="w-6 h-6 bg-purple-600 rounded-full flex items-center justify-center">
+                            <span className="text-white text-xs font-medium">
+                              {getUserInitials(user.firstName, user.lastName)}
+                            </span>
+                          </div>
+                          <span className="text-sm text-gray-900 truncate">
+                            {user.firstName && user.lastName 
+                              ? `${user.firstName} ${user.lastName}` 
+                              : user.email || 'Unknown User'}
+                          </span>
+                        </div>
+                        <span className="text-sm text-gray-600 truncate">
+                          {getLastActivity(user.activities)}
+                        </span>
+                        <span className="text-sm text-gray-600 truncate">
+                          {getRoleDisplayName(user.role)}
+                        </span>
+                        <span className={`text-sm px-2 py-1 rounded-full text-xs ${
+                          user.userStatus === 'ACTIVE' 
+                            ? 'bg-green-100 text-green-800' 
+                            : 'bg-red-100 text-red-800'
+                        }`}>
+                          {user.userStatus || 'Unknown'}
+                        </span>
+                      </div>
+                    ))}
+                    
+                    {users.length === 0 && (
+                      <div className="text-center py-8">
+                        <p className="text-gray-500">No users found</p>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -218,15 +345,24 @@ const Dashboard = () => {
               <div className="bg-white rounded-lg p-6 border border-gray-200">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Links</h3>
                 <div className="space-y-3">
-                  <button className="w-full flex items-center justify-center space-x-2 py-3 px-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
+                  <button 
+                    onClick={handleUserManagement}
+                    className="w-full flex items-center justify-center space-x-2 py-3 px-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                  >
                     <Users className="h-4 w-4" />
                     <span>User Management</span>
                   </button>
-                  <button className="w-full flex items-center justify-center space-x-2 py-3 px-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
+                  <button 
+                    onClick={handleAddNewUser}
+                    className="w-full flex items-center justify-center space-x-2 py-3 px-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                  >
                     <Plus className="h-4 w-4" />
                     <span>Add New User</span>
                   </button>
-                  <button className="w-full flex items-center justify-center space-x-2 py-3 px-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
+                  <button 
+                    onClick={handleSettings}
+                    className="w-full flex items-center justify-center space-x-2 py-3 px-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                  >
                     <Settings className="h-4 w-4" />
                     <span>Settings</span>
                   </button>

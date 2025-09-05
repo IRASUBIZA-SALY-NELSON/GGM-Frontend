@@ -2,9 +2,11 @@ import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Eye, EyeOff } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { useAuth } from '../../context/AuthContext'
 
 const Login = () => {
   const navigate = useNavigate()
+  const { login } = useAuth()
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -13,11 +15,6 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
 
-  // Static data for demo
-  const DEMO_USER = {
-    email: 'admin@ggm.com',
-    password: 'admin123'
-  }
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target
@@ -27,25 +24,137 @@ const Login = () => {
     }))
   }
 
+  const decodeUserFromToken = (token) => {
+    try {
+      console.log('🔍 Decoding user info from token')
+      // JWT tokens have 3 parts separated by dots
+      const base64Url = token.split('.')[1]
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/')
+      const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)
+      }).join(''))
+      
+      const payload = JSON.parse(jsonPayload)
+      console.log('👤 Token payload:', payload)
+      return payload
+    } catch (error) {
+      console.error('💥 Error decoding token:', error)
+      return null
+    }
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
+    console.log('🚀 Login started')
+    console.log('📝 Login credentials:', { email: formData.email, password: '***' })
     setLoading(true)
 
-    // Simulate API call
-    setTimeout(() => {
-      if (formData.email === DEMO_USER.email && formData.password === DEMO_USER.password) {
-        localStorage.setItem('authToken', 'demo-token-123')
-        localStorage.setItem('user', JSON.stringify({
+    try {
+      const response = await fetch('http://localhost:8081/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
           email: formData.email,
-          name: 'Admin User'
-        }))
-        toast.success('Login successful!')
-        navigate('/dashboard')
+          password: formData.password
+        })
+      })
+
+      console.log('📥 Login response status:', response.status)
+
+      if (response.ok) {
+        const result = await response.json()
+        console.log('✅ Login successful:', result)
+        
+        // Store tokens
+        const accessToken = result.access_token
+        const refreshToken = result.refresh_token
+        
+        if (!accessToken) {
+          console.error('❌ No access token received')
+          toast.error('Authentication failed - no token received')
+          return
+        }
+        
+        console.log('💾 Storing tokens and user info')
+        
+        // Decode user info from JWT token
+        const tokenPayload = decodeUserFromToken(accessToken)
+        
+        if (tokenPayload) {
+          // Extract user info from token payload
+          const extractUserRole = (payload) => {
+            // Check if there's a direct role field
+            if (payload.role) return payload.role.toUpperCase()
+            
+            // Extract from authorities array - look for ROLE_ prefix first
+            if (payload.authorities && payload.authorities.length > 0) {
+              // Find the authority that starts with ROLE_
+              const roleAuthority = payload.authorities.find(auth => auth.startsWith('ROLE_'))
+              if (roleAuthority) {
+                return roleAuthority.replace('ROLE_', '').toUpperCase()
+              }
+              
+              // Fallback: if no ROLE_ found, use the first authority
+              const authority = payload.authorities[0]
+              if (authority.includes(':')) {
+                return authority.split(':')[0].toUpperCase() // admin:read -> ADMIN
+              }
+              return authority.toUpperCase()
+            }
+            
+            return 'USER'
+          }
+          
+          const userInfo = {
+            email: tokenPayload.sub, // JWT standard: subject is usually the email/username
+            role: extractUserRole(tokenPayload),
+            name: tokenPayload.name || formData.email.split('@')[0]
+          }
+          
+          console.log('👤 User info extracted:', userInfo)
+          
+          // Use AuthContext login method to properly set state
+          login(userInfo, accessToken, refreshToken)
+          
+          toast.success(`Welcome back, ${userInfo.name}!`)
+          
+          // Navigate based on role
+          const role = userInfo.role
+          console.log('🎭 User role:', role)
+          
+          const roleRoutes = {
+            'ADMIN': '/admin/dashboard',
+            'MANAGER': '/warehouse-manager/dashboard',
+            'SALES_MANAGER': '/sales-manager/dashboard',
+            'SALES_ASSISTANT': '/sales-assistant/dashboard',
+            'ACCOUNTANT': '/accountant/dashboard',
+            'STORE_MANAGER': '/store-manager/dashboard',
+            'DISTRIBUTOR': '/distributor/dashboard',
+            'USER': '/dashboard'
+          }
+          
+          const redirectTo = roleRoutes[role] || '/dashboard'
+          console.log('🏠 Redirecting to:', redirectTo)
+          
+          navigate(redirectTo, { replace: true })
+        } else {
+          console.error('❌ Failed to decode user info from token')
+          toast.error('Failed to load user information')
+        }
       } else {
-        toast.error('Invalid email or password')
+        const error = await response.json()
+        console.error('❌ Login failed:', error)
+        toast.error(error.message || 'Invalid credentials')
       }
+    } catch (error) {
+      console.error('💥 Login error:', error)
+      toast.error('Network error. Please try again.')
+    } finally {
+      console.log('🏁 Login process completed')
       setLoading(false)
-    }, 1000)
+    }
   }
 
   return (
@@ -156,16 +265,15 @@ const Login = () => {
               to="/auth/register"
               className="font-medium text-purple-600 hover:text-purple-500"
             >
-              Register
+              Ask your Tenant.
             </Link>
           </div>
         </form>
 
-        {/* Demo Credentials */}
+        {/* Demo Info */}
         <div className="mt-6 p-4 bg-purple-50 rounded-lg">
-          <p className="text-sm text-purple-800 font-medium">Demo Credentials:</p>
-          <p className="text-sm text-purple-700">Email: admin@ggm.com</p>
-          <p className="text-sm text-purple-700">Password: admin123</p>
+          <p className="text-sm text-purple-800 font-medium mb-2">Login with your registered credentials</p>
+          <p className="text-xs text-purple-700">Use the email and password from your registration</p>
         </div>
       </div>
     </div>

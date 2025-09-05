@@ -1,85 +1,134 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, Filter, MoreHorizontal, ChevronDown } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 
 const ProcessOrders = () => {
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('to-be-picked');
   const [searchTerm, setSearchTerm] = useState('');
+  const [ordersData, setOrdersData] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // Sample order data
-  const ordersData = [
-    {
-      id: 1,
-      distributorName: "Ronald Richards",
-      salesAssistant: "Ronald Richards",
-      orderValue: "500,000 rwf",
-      items: "100 units",
-      age: "1 day 3hours"
-    },
-    {
-      id: 2,
-      distributorName: "Ronald Richards",
-      salesAssistant: "Ronald Richards",
-      orderValue: "500,000 rwf",
-      items: "100 units",
-      age: "1 day 3hours"
-    },
-    {
-      id: 3,
-      distributorName: "Ronald Richards",
-      salesAssistant: "Ronald Richards",
-      orderValue: "500,000 rwf",
-      items: "100 units",
-      age: "1 day 3hours"
-    },
-    {
-      id: 4,
-      distributorName: "Ronald Richards",
-      salesAssistant: "Ronald Richards",
-      orderValue: "500,000 rwf",
-      items: "100 units",
-      age: "1 day 3hours"
-    },
-    {
-      id: 5,
-      distributorName: "Ronald Richards",
-      salesAssistant: "Ronald Richards",
-      orderValue: "500,000 rwf",
-      items: "100 units",
-      age: "1 day 3hours"
-    },
-    {
-      id: 6,
-      distributorName: "Ronald Richards",
-      salesAssistant: "Ronald Richards",
-      orderValue: "500,000 rwf",
-      items: "100 units",
-      age: "1 day 3hours"
-    },
-    {
-      id: 7,
-      distributorName: "Ronald Richards",
-      salesAssistant: "Ronald Richards",
-      orderValue: "500,000 rwf",
-      items: "100 units",
-      age: "1 day 3hours"
-    },
-    {
-      id: 8,
-      distributorName: "Ronald Richards",
-      salesAssistant: "Ronald Richards",
-      orderValue: "500,000 rwf",
-      items: "100 units",
-      age: "1 day 3hours"
-    },
-    {
-      id: 9,
-      distributorName: "Ronald Richards",
-      salesAssistant: "Ronald Richards",
-      orderValue: "500,000 rwf",
-      items: "100 units",
-      age: "1 day 3hours"
+  const getUserDisplayName = () => {
+    if (user?.name) return user.name;
+    if (user?.firstName && user?.lastName) return `${user.firstName} ${user.lastName}`;
+    if (user?.email) return user.email.split('@')[0];
+    return 'User';
+  };
+
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem('accessToken');
+    return {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    };
+  };
+
+  const getStatusForTab = (tabId) => {
+    const statusMap = {
+      'to-be-picked': ['TO_BE_PICKED', 'PENDING'],
+      'picking': ['PICKING'],
+      'to-be-packed': ['TO_BE_PACKED'],
+      'packed': ['PACKED']
+    };
+    return statusMap[tabId] || [];
+  };
+
+  const calculateAge = (createdAt) => {
+    if (!createdAt) return 'Unknown';
+    
+    const now = new Date();
+    const created = new Date(createdAt);
+    const diffMs = now - created;
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffHours / 24);
+    
+    if (diffDays > 0) {
+      const remainingHours = diffHours % 24;
+      return `${diffDays} day${diffDays > 1 ? 's' : ''} ${remainingHours}h`;
+    } else {
+      return `${diffHours}h`;
     }
-  ];
+  };
+
+  const fetchOrders = async () => {
+    setLoading(true);
+    
+    try {
+      const response = await fetch('http://localhost:8080/api/orders', {
+        headers: getAuthHeaders()
+      });
+      
+      if (response.ok) {
+        const orders = await response.json();
+        
+        // Filter orders based on active tab
+        const statusesToShow = getStatusForTab(activeTab);
+        const filteredOrders = orders.filter(order => 
+          statusesToShow.includes(order.status)
+        );
+        
+        // Process orders for display
+        const processedOrders = filteredOrders.map(order => ({
+          id: order.id,
+          distributorName: order.distributorName || order.customerName || 'Unknown Distributor',
+          salesAssistant: order.salesAssistantName || 'Unassigned',
+          orderValue: `${order.totalAmount || 0} rwf`,
+          items: `${order.totalQuantity || 0} units`,
+          age: calculateAge(order.createdAt || order.orderDate),
+          status: order.status,
+          createdAt: order.createdAt || order.orderDate
+        }));
+        
+        setOrdersData(processedOrders);
+      } else {
+        console.warn('Failed to fetch orders:', response.statusText);
+        setOrdersData([]);
+      }
+    } catch (error) {
+      console.warn('Error fetching orders:', error);
+      setOrdersData([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updateOrderStatus = async (orderId, newStatus) => {
+    try {
+      const response = await fetch(`http://localhost:8080/api/orders/${orderId}/status`, {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ status: newStatus })
+      });
+      
+      if (response.ok) {
+        // Refresh orders after status update
+        fetchOrders();
+      } else {
+        console.warn('Failed to update order status:', response.statusText);
+      }
+    } catch (error) {
+      console.warn('Error updating order status:', error);
+    }
+  };
+
+  const handleActionClick = (orderId) => {
+    const nextStatusMap = {
+      'to-be-picked': 'PICKING',
+      'picking': 'TO_BE_PACKED',
+      'to-be-packed': 'PACKED',
+      'packed': 'SHIPPED'
+    };
+    
+    const nextStatus = nextStatusMap[activeTab];
+    if (nextStatus) {
+      updateOrderStatus(orderId, nextStatus);
+    }
+  };
+
+  useEffect(() => {
+    fetchOrders();
+  }, [activeTab]);
 
   const tabs = [
     {
@@ -145,20 +194,6 @@ const ProcessOrders = () => {
             <div className="text-sm text-gray-500 mb-1">{currentTab.step} {currentTab.title}</div>
             <h1 className="text-2xl font-semibold text-gray-900">Order Processing</h1>
             <p className="text-sm text-gray-500">{currentTab.subtitle}</p>
-          </div>
-          <div className="flex items-center space-x-3">
-            <div className="flex items-center space-x-2">
-              <img 
-                src="/distributor.png" 
-                alt="Robert Allen" 
-                className="w-8 h-8 rounded-full"
-              />
-              <div className="text-right">
-                <div className="text-sm font-medium text-gray-700">Robert Allen</div>
-                <div className="text-xs text-gray-500">Warehouse Manager</div>
-              </div>
-              <ChevronDown className="w-4 h-4 text-gray-500" />
-            </div>
           </div>
         </div>
       </div>
@@ -231,7 +266,20 @@ const ProcessOrders = () => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {ordersData.map((order) => (
+                {loading ? (
+                  <tr>
+                    <td colSpan="6" className="py-8 text-center text-gray-500">
+                      Loading orders...
+                    </td>
+                  </tr>
+                ) : ordersData.length === 0 ? (
+                  <tr>
+                    <td colSpan="6" className="py-8 text-center text-gray-500">
+                      No orders found for this status
+                    </td>
+                  </tr>
+                ) : (
+                  ordersData.map((order) => (
                   <tr key={order.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4">
                       <div className="flex items-center space-x-3">
@@ -257,12 +305,16 @@ const ProcessOrders = () => {
                     <td className="px-6 py-4 text-sm text-gray-900">{order.items}</td>
                     <td className="px-6 py-4 text-sm text-gray-900">{order.age}</td>
                     <td className="px-6 py-4">
-                      <button className={`${actionButton.color} text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors`}>
+                      <button 
+                        onClick={() => handleActionClick(order.id)}
+                        className={`${actionButton.color} text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors`}
+                      >
                         {actionButton.text}
                       </button>
                     </td>
                   </tr>
-                ))}
+                  ))
+                )}
               </tbody>
             </table>
           </div>

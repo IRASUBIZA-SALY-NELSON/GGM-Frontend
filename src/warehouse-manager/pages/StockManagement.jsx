@@ -1,66 +1,92 @@
-import React, { useState } from 'react';
-import { Search, Filter, ChevronDown } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Search, Filter, Plus, Eye, Edit, Trash2, ChevronDown } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 
 const StockManagement = () => {
+  const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('All Categories');
+  const [productsData, setProductsData] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // Sample product data
-  const productsData = [
-    {
-      id: 1,
-      name: "Skinny Jeans",
-      category: "Casual Jeans",
-      currentStock: 120,
-      unitPrice: 6500,
-      status: "Active",
-      image: "/1.png"
-    },
-    {
-      id: 2,
-      name: "Skinny Jeans",
-      category: "Casual Jeans",
-      currentStock: 120,
-      unitPrice: 6500,
-      status: "Active",
-      image: "/2.png"
-    },
-    {
-      id: 3,
-      name: "Skinny Jeans",
-      category: "Casual Jeans",
-      currentStock: 120,
-      unitPrice: 6500,
-      status: "Active",
-      image: "/1.png"
-    },
-    {
-      id: 4,
-      name: "Skinny Jeans",
-      category: "Casual Jeans",
-      currentStock: 120,
-      unitPrice: 6500,
-      status: "Active",
-      image: "/2.png"
-    },
-    {
-      id: 5,
-      name: "Skinny Jeans",
-      category: "Casual Jeans",
-      currentStock: 120,
-      unitPrice: 6500,
-      status: "Active",
-      image: "/1.png"
-    },
-    {
-      id: 6,
-      name: "Skinny Jeans",
-      category: "Casual Jeans",
-      currentStock: 120,
-      unitPrice: 6500,
-      status: "Active",
-      image: "/2.png"
+  const getUserDisplayName = () => {
+    if (user?.name) return user.name;
+    if (user?.firstName && user?.lastName) return `${user.firstName} ${user.lastName}`;
+    if (user?.email) return user.email.split('@')[0];
+    return 'User';
+  };
+
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem('accessToken');
+    return {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    };
+  };
+
+  const fetchInventory = async () => {
+    setLoading(true);
+    
+    try {
+      const response = await fetch('http://localhost:8080/api/inventories', {
+        headers: getAuthHeaders()
+      });
+      
+      if (response.ok) {
+        const inventory = await response.json();
+        
+        // Process inventory data for display
+        const processedProducts = inventory.map(item => ({
+          id: item.id,
+          name: item.productName || item.name || 'Unknown Product',
+          category: item.category || 'Uncategorized',
+          currentStock: item.currentStock || 0,
+          unitPrice: item.unitPrice || 0,
+          status: item.currentStock > (item.minStockLevel || 10) ? 'Active' : 'Low Stock',
+          image: item.imageUrl || '/1.png',
+          minStockLevel: item.minStockLevel || 10
+        }));
+        
+        setProductsData(processedProducts);
+      } else {
+        console.warn('Failed to fetch inventory:', response.statusText);
+        setProductsData([]);
+      }
+    } catch (error) {
+      console.warn('Error fetching inventory:', error);
+      setProductsData([]);
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
+
+  const updateStock = async (productId, newStock) => {
+    try {
+      const response = await fetch(`http://localhost:8080/api/inventories/${productId}`, {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ currentStock: newStock })
+      });
+      
+      if (response.ok) {
+        // Refresh inventory after stock update
+        fetchInventory();
+      } else {
+        console.warn('Failed to update stock:', response.statusText);
+      }
+    } catch (error) {
+      console.warn('Error updating stock:', error);
+    }
+  };
+
+  const handleManageClick = (productId) => {
+    // For now, just log the action - could open a modal or navigate to detail page
+    console.log('Managing product:', productId);
+  };
+
+  useEffect(() => {
+    fetchInventory();
+  }, []);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -71,20 +97,6 @@ const StockManagement = () => {
             <div className="text-sm text-gray-500 mb-1">01 Stock management</div>
             <h1 className="text-2xl font-semibold text-gray-900">Stock Management</h1>
             <p className="text-sm text-gray-500">Control the inventory</p>
-          </div>
-          <div className="flex items-center space-x-3">
-            <div className="flex items-center space-x-2">
-              <img 
-                src="/distributor.png" 
-                alt="Robert Allen" 
-                className="w-8 h-8 rounded-full"
-              />
-              <div className="text-right">
-                <div className="text-sm font-medium text-gray-700">Robert Allen</div>
-                <div className="text-xs text-gray-500">Warehouse Manager</div>
-              </div>
-              <ChevronDown className="w-4 h-4 text-gray-500" />
-            </div>
           </div>
         </div>
       </div>
@@ -112,12 +124,25 @@ const StockManagement = () => {
 
         {/* Products Grid */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {productsData.map((product) => (
+          {loading ? (
+            <div className="py-8 text-center text-gray-500">
+              Loading inventory...
+            </div>
+          ) : productsData.length === 0 ? (
+            <div className="py-8 text-center text-gray-500">
+              No products found in inventory
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {productsData.map((product) => (
               <div key={product.id} className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
                 {/* Status Badge */}
                 <div className="flex justify-end mb-3">
-                  <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
+                  <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
+                    product.status === 'Active' 
+                      ? 'bg-green-100 text-green-800' 
+                      : 'bg-red-100 text-red-800'
+                  }`}>
                     {product.status}
                   </span>
                 </div>
@@ -155,13 +180,17 @@ const StockManagement = () => {
                   </div>
 
                   {/* Action Button */}
-                  <button className="w-full bg-purple-600 text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-purple-700 transition-colors">
+                  <button 
+                    onClick={() => handleManageClick(product.id)}
+                    className="w-full bg-purple-600 text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-purple-700 transition-colors"
+                  >
                     Manage →
                   </button>
                 </div>
               </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
 
           {/* Pagination */}
           <div className="flex items-center justify-between mt-8 pt-6 border-t border-gray-200">

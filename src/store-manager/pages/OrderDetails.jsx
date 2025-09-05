@@ -1,13 +1,61 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, Search } from 'lucide-react'
 
 const OrderDetails = () => {
   const navigate = useNavigate()
   const { orderId } = useParams()
+  const [orderData, setOrderData] = useState(null)
+  const [loading, setLoading] = useState(true)
+
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem('accessToken');
+    return {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    };
+  };
+
+  const fetchOrderDetails = async () => {
+    setLoading(true);
+    
+    try {
+      const response = await fetch(`http://localhost:8080/api/orders/${orderId}`, {
+        headers: getAuthHeaders()
+      });
+      
+      if (response.ok) {
+        const order = await response.json();
+        setOrderData(order);
+      } else {
+        console.warn('Failed to fetch order details:', response.statusText);
+        setOrderData(null);
+      }
+    } catch (error) {
+      console.warn('Error fetching order details:', error);
+      setOrderData(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (orderId) {
+      fetchOrderDetails();
+    }
+  }, [orderId]);
 
   const handleBackToHistory = () => {
     navigate('/store-manager/product-history')
+  }
+
+  const getStatusColor = (status) => {
+    switch (status?.toLowerCase()) {
+      case 'approved': case 'completed': return 'bg-green-100 text-green-800'
+      case 'pending': return 'bg-yellow-100 text-yellow-800'
+      case 'cancelled': case 'rejected': return 'bg-red-100 text-red-800'
+      default: return 'bg-gray-100 text-gray-800'
+    }
   }
 
   return (
@@ -44,116 +92,151 @@ const OrderDetails = () => {
 
       {/* Order Details Card */}
       <div className="bg-white rounded-lg border border-gray-200 p-8 mb-8">
-        <div className="flex items-center justify-between mb-8">
-          <h2 className="text-xl font-bold text-gray-900">ORDER DETAILS</h2>
-          <button className="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm">
-            Order ID #
-          </button>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-          {/* Left Column */}
-          <div className="space-y-6">
-            <div>
-              <h3 className="text-sm font-medium text-gray-500 mb-2">Order Number:</h3>
-              <p className="text-gray-900">1223456789350</p>
-            </div>
-
-            <div>
-              <h3 className="text-sm font-medium text-gray-500 mb-2">Order Date:</h3>
-              <p className="text-gray-900">10/12/2025</p>
-            </div>
-
-            <div className="pt-4">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">PLACED BY :</h3>
-              
-              <div className="space-y-4">
-                <div>
-                  <h4 className="text-sm font-medium text-gray-500 mb-1">Sales Assistant Name:</h4>
-                  <p className="text-gray-900">Liam John</p>
-                </div>
-
-                <div>
-                  <h4 className="text-sm font-medium text-gray-500 mb-1">Shipping Address</h4>
-                  <p className="text-gray-900">KK 100 KIMIHURURA</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="pt-4">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">BILL TO :</h3>
-              
-              <div className="space-y-4">
-                <div>
-                  <h4 className="text-sm font-medium text-gray-500 mb-1">Company Name:</h4>
-                  <p className="text-gray-900">AMACO CLOTHES LTD</p>
-                </div>
-
-                <div>
-                  <h4 className="text-sm font-medium text-gray-500 mb-1">Phone Number:</h4>
-                  <p className="text-gray-900">10/12/2025</p>
-                </div>
-              </div>
-            </div>
+        {loading ? (
+          <div className="text-center py-8">
+            <p className="text-gray-500">Loading order details...</p>
           </div>
-
-          {/* Right Column */}
-          <div className="space-y-6">
-            <div>
-              <h3 className="text-sm font-medium text-gray-500 mb-2">Due Date:</h3>
-              <p className="text-gray-900">10/12/2025</p>
+        ) : !orderData ? (
+          <div className="text-center py-8">
+            <p className="text-gray-500">Order not found</p>
+          </div>
+        ) : (
+          <>
+            <div className="flex items-center justify-between mb-8">
+              <h2 className="text-xl font-bold text-gray-900">ORDER DETAILS</h2>
+              <button className="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm">
+                Order ID #{orderData.id}
+              </button>
             </div>
 
-            <div>
-              <h3 className="text-sm font-medium text-gray-500 mb-2">Order Status:</h3>
-              <span className="inline-flex px-3 py-1 text-sm font-semibold rounded-full bg-green-100 text-green-800">
-                Approved
-              </span>
-            </div>
-
-            <div className="pt-4">
-              <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+              {/* Left Column */}
+              <div className="space-y-6">
                 <div>
-                  <h4 className="text-sm font-medium text-gray-500 mb-1">Distributor Name:</h4>
-                  <p className="text-gray-900">John Doe</p>
+                  <h3 className="text-sm font-medium text-gray-500 mb-2">Order Number:</h3>
+                  <p className="text-gray-900">{orderData.orderNumber || orderData.id}</p>
+                </div>
+
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500 mb-2">Order Date:</h3>
+                  <p className="text-gray-900">
+                    {orderData.orderDate ? new Date(orderData.orderDate).toLocaleDateString() : 
+                     orderData.createdAt ? new Date(orderData.createdAt).toLocaleDateString() : 'N/A'}
+                  </p>
+                </div>
+
+                <div className="pt-4">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">PLACED BY :</h3>
+                  
+                  <div className="space-y-4">
+                    <div>
+                      <h4 className="text-sm font-medium text-gray-500 mb-1">Sales Assistant Name:</h4>
+                      <p className="text-gray-900">{orderData.salesAssistant || orderData.createdBy || 'N/A'}</p>
+                    </div>
+
+                    <div>
+                      <h4 className="text-sm font-medium text-gray-500 mb-1">Shipping Address</h4>
+                      <p className="text-gray-900">{orderData.shippingAddress || 'N/A'}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-4">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">BILL TO :</h3>
+                  
+                  <div className="space-y-4">
+                    <div>
+                      <h4 className="text-sm font-medium text-gray-500 mb-1">Company Name:</h4>
+                      <p className="text-gray-900">{orderData.companyName || orderData.customerName || 'N/A'}</p>
+                    </div>
+
+                    <div>
+                      <h4 className="text-sm font-medium text-gray-500 mb-1">Phone Number:</h4>
+                      <p className="text-gray-900">{orderData.phoneNumber || orderData.contactNumber || 'N/A'}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right Column */}
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500 mb-2">Due Date:</h3>
+                  <p className="text-gray-900">
+                    {orderData.dueDate ? new Date(orderData.dueDate).toLocaleDateString() : 'N/A'}
+                  </p>
+                </div>
+
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500 mb-2">Order Status:</h3>
+                  <span className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full ${getStatusColor(orderData.status)}`}>
+                    {orderData.status || 'Pending'}
+                  </span>
+                </div>
+
+                <div className="pt-4">
+                  <div className="space-y-4">
+                    <div>
+                      <h4 className="text-sm font-medium text-gray-500 mb-1">Distributor Name:</h4>
+                      <p className="text-gray-900">{orderData.distributorName || orderData.customerName || 'N/A'}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-8">
+                  <div className="space-y-4">
+                    <div>
+                      <h4 className="text-sm font-medium text-gray-500 mb-1">Address:</h4>
+                      <p className="text-gray-900">{orderData.billingAddress || orderData.address || 'N/A'}</p>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
 
-            <div className="pt-8">
-              <div className="space-y-4">
-                <div>
-                  <h4 className="text-sm font-medium text-gray-500 mb-1">Address:</h4>
-                  <p className="text-gray-900">10/12/2025</p>
-                </div>
+            {/* Product Details Table */}
+            <div className="border-t border-gray-200 pt-8">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product Name</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unit Price</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {orderData.items && orderData.items.length > 0 ? (
+                      orderData.items.map((item, index) => (
+                        <tr key={index}>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {item.productName || item.name || 'Product'}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {item.quantity || 0} units
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {item.unitPrice || item.price || 0} rwf
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {((item.unitPrice || item.price || 0) * (item.quantity || 0)).toLocaleString()} rwf
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan="4" className="px-6 py-4 text-center text-sm text-gray-500">
+                          No items found in this order
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
               </div>
             </div>
-          </div>
-        </div>
-
-        {/* Product Details Table */}
-        <div className="border-t border-gray-200 pt-8">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product Name</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Qty Qty</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unit Price</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Amount</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                <tr>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Jeans</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">120 units</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">6000 rwf</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">72,000 rwf</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
+          </>
+        )}
       </div>
     </div>
   )

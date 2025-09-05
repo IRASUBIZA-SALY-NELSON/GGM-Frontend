@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, Bell, ChevronDown, Plus, Filter, Eye, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -6,87 +6,143 @@ const MyTeam = () => {
   const navigate = useNavigate();
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedMember, setSelectedMember] = useState(null);
+  const [revenueData, setRevenueData] = useState([]);
+  const [performanceData, setPerformanceData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [teamStats, setTeamStats] = useState({
+    totalAssistants: 0,
+    totalRevenue: 0,
+    quotaAchieved: 0,
+    loading: true
+  });
 
-  // YTD Revenue by Sales Assistant data
-  const revenueData = [
-    { name: 'Liam Carter', percentage: 25, color: 'bg-purple-600' },
-    { name: 'Sophia Newman', percentage: 45, color: 'bg-purple-600' },
-    { name: 'Ethan Blake', percentage: 60, color: 'bg-purple-600' },
-    { name: 'Amara Johnson', percentage: 75, color: 'bg-purple-600' },
-    { name: 'Noah Morgan', percentage: 100, color: 'bg-purple-600' }
-  ];
-
-  // Individual Performance data
-  const performanceData = [
-    {
-      id: 1,
-      name: 'Louise Watson',
-      avatar: '/distributor.png',
-      revenue: '1,000,000 rwf',
-      quota: '50%',
-      trend: 'up',
-      trendValue: '18%',
-      status: 'active'
-    },
-    {
-      id: 2,
-      name: 'Louise Watson',
-      avatar: '/distributor.png',
-      revenue: '1,000,000 rwf',
-      quota: '50%',
-      trend: 'up',
-      trendValue: '18%',
-      status: 'active'
-    },
-    {
-      id: 3,
-      name: 'Darlene Robertson',
-      avatar: '/distributor.png',
-      revenue: '500,000 rwf',
-      quota: '70%',
-      trend: 'down',
-      trendValue: '2%',
-      status: 'active'
-    },
-    {
-      id: 4,
-      name: 'Darlene Robertson',
-      avatar: '/distributor.png',
-      revenue: '500,000 rwf',
-      quota: '70%',
-      trend: 'down',
-      trendValue: '2%',
-      status: 'active'
-    },
-    {
-      id: 5,
-      name: 'Louise Watson',
-      avatar: '/distributor.png',
-      revenue: '1,000,000 rwf',
-      quota: '50%',
-      trend: 'up',
-      trendValue: '18%',
-      status: 'active'
-    },
-    {
-      id: 6,
-      name: 'Darlene Robertson',
-      avatar: '/distributor.png',
-      revenue: '500,000 rwf',
-      quota: '70%',
-      trend: 'down',
-      trendValue: '2%',
-      status: 'active'
-    }
-  ];
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem('accessToken');
+    return {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    };
+  };
 
   const handleDeleteClick = (member) => {
     setSelectedMember(member);
     setShowDeleteModal(true);
   };
 
-  const handleDeleteConfirm = () => {
-    // Handle delete logic here
+  const fetchTeamData = async () => {
+    setLoading(true);
+    
+    try {
+      // Fetch sales assistants/team members
+      const teamResponse = await fetch('http://localhost:8080/api/users?role=SALES_ASSISTANT', {
+        headers: getAuthHeaders()
+      });
+      
+      // Fetch orders to calculate revenue and performance
+      const ordersResponse = await fetch('http://localhost:8080/api/orders', {
+        headers: getAuthHeaders()
+      });
+      
+      if (teamResponse.ok && ordersResponse.ok) {
+        const teamMembers = await teamResponse.json();
+        const orders = await ordersResponse.json();
+        
+        // Process team performance data
+        const processedPerformance = teamMembers.map(member => {
+          const memberOrders = orders.filter(order => 
+            order.salesAssistant === member.name || 
+            order.createdBy === member.email
+          );
+          
+          const revenue = memberOrders.reduce((sum, order) => sum + (order.totalAmount || 0), 0);
+          const quota = Math.min(100, Math.round((revenue / 1000000) * 100)); // Assuming 1M target
+          const trend = quota > 50 ? 'up' : 'down';
+          const trendValue = Math.abs(quota - 50);
+          
+          return {
+            id: member.id,
+            name: `${member.firstName || ''} ${member.lastName || ''}`.trim() || member.email,
+            avatar: member.avatar || '/distributor.png',
+            revenue: `${revenue.toLocaleString()} rwf`,
+            quota: `${quota}%`,
+            trend,
+            trendValue: `${trendValue}%`,
+            status: 'active'
+          };
+        });
+        
+        setPerformanceData(processedPerformance);
+        
+        // Process revenue chart data (top 5 performers)
+        const sortedByRevenue = processedPerformance
+          .sort((a, b) => parseInt(b.quota) - parseInt(a.quota))
+          .slice(0, 5)
+          .map(member => ({
+            name: member.name,
+            percentage: parseInt(member.quota),
+            color: 'bg-purple-600'
+          }));
+        
+        setRevenueData(sortedByRevenue);
+        
+        // Calculate team stats
+        const totalRevenue = processedPerformance.reduce((sum, member) => {
+          const revenue = parseInt(member.revenue.replace(/[^0-9]/g, '')) || 0;
+          return sum + revenue;
+        }, 0);
+        
+        const avgQuota = processedPerformance.length > 0 
+          ? Math.round(processedPerformance.reduce((sum, member) => sum + parseInt(member.quota), 0) / processedPerformance.length)
+          : 0;
+        
+        setTeamStats({
+          totalAssistants: teamMembers.length,
+          totalRevenue,
+          quotaAchieved: avgQuota,
+          loading: false
+        });
+      } else {
+        console.warn('Failed to fetch team data');
+        setPerformanceData([]);
+        setRevenueData([]);
+        setTeamStats(prev => ({ ...prev, loading: false }));
+      }
+    } catch (error) {
+      console.error('Error fetching team data:', error);
+      setPerformanceData([]);
+      setRevenueData([]);
+      setTeamStats(prev => ({ ...prev, loading: false }));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchTeamData();
+  }, []);
+
+  const handleDeleteConfirm = async () => {
+    if (!selectedMember) return;
+    
+    try {
+      const response = await fetch(`http://localhost:8080/api/users/${selectedMember.id}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders()
+      });
+      
+      if (response.ok) {
+        // Refresh team data
+        fetchTeamData();
+      } else {
+        console.error('Failed to delete team member');
+        alert('Failed to delete team member. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error deleting team member:', error);
+      alert('Error deleting team member. Please try again.');
+    }
+    
     setShowDeleteModal(false);
     setSelectedMember(null);
   };
@@ -113,6 +169,8 @@ const MyTeam = () => {
             <input
               type="text"
               placeholder="Search..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10 pr-4 py-2 w-80 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
             />
           </div>
@@ -143,7 +201,9 @@ const MyTeam = () => {
             </div>
             <span className="text-xs text-gray-500">April</span>
           </div>
-          <div className="text-3xl font-bold text-gray-900 mb-1">560</div>
+          <div className="text-3xl font-bold text-gray-900 mb-1">
+            {teamStats.loading ? 'Loading...' : teamStats.totalAssistants}
+          </div>
           <div className="flex items-center text-sm">
             <span className="text-green-600 font-medium">↗ 8.5%</span>
           </div>
@@ -164,7 +224,9 @@ const MyTeam = () => {
             </div>
             <span className="text-xs text-gray-500">April</span>
           </div>
-          <div className="text-3xl font-bold text-gray-900 mb-1">1,050,000 rwf</div>
+          <div className="text-3xl font-bold text-gray-900 mb-1">
+            {teamStats.loading ? 'Loading...' : `${teamStats.totalRevenue.toLocaleString()} rwf`}
+          </div>
           <div className="flex items-center text-sm">
             <span className="text-green-600 font-medium">↗ 4.3%</span>
           </div>
@@ -181,9 +243,11 @@ const MyTeam = () => {
               <span className="text-sm text-gray-600">% of Team Quota Achieved</span>
             </div>
           </div>
-          <div className="text-3xl font-bold text-gray-900 mb-1">86%</div>
+          <div className="text-3xl font-bold text-gray-900 mb-1">
+            {teamStats.loading ? 'Loading...' : `${teamStats.quotaAchieved}%`}
+          </div>
           <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
-            <div className="bg-purple-600 h-2 rounded-full" style={{ width: '86%' }}></div>
+            <div className="bg-purple-600 h-2 rounded-full" style={{ width: `${teamStats.quotaAchieved}%` }}></div>
           </div>
           <div className="text-xs text-gray-500">Update Jun 15, 2025</div>
         </div>
@@ -200,7 +264,12 @@ const MyTeam = () => {
         </div>
         
         <div className="space-y-4">
-          {revenueData.map((data, index) => (
+          {revenueData.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              {teamStats.loading ? 'Loading revenue data...' : 'No revenue data available'}
+            </div>
+          ) : (
+            revenueData.map((data, index) => (
             <div key={index} className="flex items-center space-x-4">
               <div className="w-20 text-sm text-gray-600 text-right">{data.name}</div>
               <div className="flex-1 bg-gray-200 rounded-full h-6 relative">
@@ -210,7 +279,8 @@ const MyTeam = () => {
                 ></div>
               </div>
             </div>
-          ))}
+            ))
+          )}
         </div>
         
         <div className="flex justify-between text-xs text-gray-400 mt-4">
@@ -262,7 +332,24 @@ const MyTeam = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {performanceData.map((member) => (
+              {loading ? (
+                <tr>
+                  <td colSpan="5" className="py-8 text-center text-gray-500">
+                    Loading team members...
+                  </td>
+                </tr>
+              ) : performanceData.length === 0 ? (
+                <tr>
+                  <td colSpan="5" className="py-8 text-center text-gray-500">
+                    No team members found
+                  </td>
+                </tr>
+              ) : (
+                performanceData
+                  .filter(member => 
+                    member.name.toLowerCase().includes(searchTerm.toLowerCase())
+                  )
+                  .map((member) => (
                 <tr key={member.id} className="hover:bg-gray-50">
                   <td className="py-4">
                     <div className="flex items-center space-x-3">
@@ -306,7 +393,8 @@ const MyTeam = () => {
                     </div>
                   </td>
                 </tr>
-              ))}
+                  ))
+              )}
             </tbody>
           </table>
         </div>

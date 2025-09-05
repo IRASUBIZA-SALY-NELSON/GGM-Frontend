@@ -1,124 +1,81 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, Filter, Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const Payments = () => {
   const [showFilter, setShowFilter] = useState(false);
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [payments, setPayments] = useState([]);
 
-  // Sample payments data
-  const payments = [
-    {
-      id: 1,
-      distributorName: 'Ronald Richards',
-      distributorAvatar: '/distributor.png',
-      accountPaid: '2,000,000rwf',
-      status: 'Pending',
-      statusColor: 'bg-yellow-100 text-yellow-800',
-      paymentDate: '2/2/2025',
-      receivedBy: 'Ronald Richards',
-      receivedByAvatar: '/distributor.png'
-    },
-    {
-      id: 2,
-      distributorName: 'Ronald Richards',
-      distributorAvatar: '/distributor.png',
-      accountPaid: '2,000,000rwf',
-      status: 'Pending',
-      statusColor: 'bg-yellow-100 text-yellow-800',
-      paymentDate: '2/2/2025',
-      receivedBy: 'Ronald Richards',
-      receivedByAvatar: '/distributor.png'
-    },
-    {
-      id: 3,
-      distributorName: 'Ronald Richards',
-      distributorAvatar: '/distributor.png',
-      accountPaid: '2,000,000rwf',
-      status: 'Pending',
-      statusColor: 'bg-yellow-100 text-yellow-800',
-      paymentDate: '2/2/2025',
-      receivedBy: 'Ronald Richards',
-      receivedByAvatar: '/distributor.png'
-    },
-    {
-      id: 4,
-      distributorName: 'Ronald Richards',
-      distributorAvatar: '/distributor.png',
-      accountPaid: '2,000,000rwf',
-      status: 'Pending',
-      statusColor: 'bg-yellow-100 text-yellow-800',
-      paymentDate: '2/2/2025',
-      receivedBy: 'Ronald Richards',
-      receivedByAvatar: '/distributor.png'
-    },
-    {
-      id: 5,
-      distributorName: 'Ronald Richards',
-      distributorAvatar: '/distributor.png',
-      accountPaid: '2,000,000rwf',
-      status: 'Pending',
-      statusColor: 'bg-yellow-100 text-yellow-800',
-      paymentDate: '2/2/2025',
-      receivedBy: 'Ronald Richards',
-      receivedByAvatar: '/distributor.png'
-    },
-    {
-      id: 6,
-      distributorName: 'Ronald Richards',
-      distributorAvatar: '/distributor.png',
-      accountPaid: '2,000,000rwf',
-      status: 'Pending',
-      statusColor: 'bg-yellow-100 text-yellow-800',
-      paymentDate: '2/2/2025',
-      receivedBy: 'Ronald Richards',
-      receivedByAvatar: '/distributor.png'
-    },
-    {
-      id: 7,
-      distributorName: 'Ronald Richards',
-      distributorAvatar: '/distributor.png',
-      accountPaid: '2,000,000rwf',
-      status: 'Pending',
-      statusColor: 'bg-yellow-100 text-yellow-800',
-      paymentDate: '2/2/2025',
-      receivedBy: 'Ronald Richards',
-      receivedByAvatar: '/distributor.png'
-    },
-    {
-      id: 8,
-      distributorName: 'Ronald Richards',
-      distributorAvatar: '/distributor.png',
-      accountPaid: '2,000,000rwf',
-      status: 'Pending',
-      statusColor: 'bg-yellow-100 text-yellow-800',
-      paymentDate: '2/2/2025',
-      receivedBy: 'Ronald Richards',
-      receivedByAvatar: '/distributor.png'
-    },
-    {
-      id: 9,
-      distributorName: 'Ronald Richards',
-      distributorAvatar: '/distributor.png',
-      accountPaid: '2,000,000rwf',
-      status: 'Pending',
-      statusColor: 'bg-yellow-100 text-yellow-800',
-      paymentDate: '2/2/2025',
-      receivedBy: 'Ronald Richards',
-      receivedByAvatar: '/distributor.png'
-    },
-    {
-      id: 10,
-      distributorName: 'Ronald Richards',
-      distributorAvatar: '/distributor.png',
-      accountPaid: '2,000,000rwf',
-      status: 'Pending',
-      statusColor: 'bg-yellow-100 text-yellow-800',
-      paymentDate: '2/2/2025',
-      receivedBy: 'Ronald Richards',
-      receivedByAvatar: '/distributor.png'
+  // Helper function to get authentication headers
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem('accessToken');
+    return {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    };
+  };
+
+  // Helper function to get status color
+  const getStatusColor = (status) => {
+    switch (status?.toLowerCase()) {
+      case 'completed':
+      case 'confirmed':
+        return 'bg-green-100 text-green-800';
+      case 'pending':
+      case 'processing':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'failed':
+      case 'rejected':
+        return 'bg-red-100 text-red-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
     }
-  ];
+  };
+
+  // Fetch payments data
+  const fetchPayments = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch('http://localhost:8080/api/payments', {
+        headers: getAuthHeaders()
+      });
+      if (response.ok) {
+        const paymentsData = await response.json();
+        const processedPayments = paymentsData.map(payment => ({
+          id: payment.id,
+          distributorName: payment.customerName || payment.distributorName || payment.payerName || 'Unknown Distributor',
+          distributorAvatar: '/distributor.png',
+          accountPaid: `${(payment.amount || payment.totalAmount || 0).toLocaleString()}rwf`,
+          status: payment.status || 'Pending',
+          statusColor: getStatusColor(payment.status),
+          paymentDate: new Date(payment.paymentDate || payment.createdAt).toLocaleDateString(),
+          receivedBy: payment.receivedBy || payment.processedBy || 'System',
+          receivedByAvatar: '/distributor.png'
+        }));
+        setPayments(processedPayments);
+      } else {
+        setPayments([]);
+      }
+    } catch (error) {
+      console.error('Error fetching payments:', error);
+      setPayments([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Filter payments based on search term
+  const filteredPayments = payments.filter(payment =>
+    payment.distributorName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    payment.receivedBy.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  useEffect(() => {
+    fetchPayments();
+  }, []);
 
   return (
     <div className="min-h-screen bg-white">
@@ -151,6 +108,8 @@ const Payments = () => {
             <input
               type="text"
               placeholder="Search..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent w-80"
             />
           </div>
@@ -189,7 +148,20 @@ const Payments = () => {
                 </tr>
               </thead>
               <tbody>
-                {payments.map((payment) => (
+                {loading ? (
+                  <tr>
+                    <td colSpan="7" className="py-8 text-center text-gray-500">
+                      Loading payments...
+                    </td>
+                  </tr>
+                ) : filteredPayments.length === 0 ? (
+                  <tr>
+                    <td colSpan="7" className="py-8 text-center text-gray-500">
+                      No payments found
+                    </td>
+                  </tr>
+                ) : (
+                  filteredPayments.map((payment) => (
                   <tr key={payment.id} className="border-b border-gray-100 hover:bg-gray-50">
                     <td className="py-4 px-6">
                       <div className="w-4 h-4 bg-purple-600 rounded flex items-center justify-center">
@@ -233,7 +205,8 @@ const Payments = () => {
                       </button>
                     </td>
                   </tr>
-                ))}
+                  ))
+                )}
               </tbody>
             </table>
           </div>

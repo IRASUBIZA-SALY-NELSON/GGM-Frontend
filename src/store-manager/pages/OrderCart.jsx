@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { Search, ArrowLeft, Filter, MoreVertical } from 'lucide-react'
 import UpdateOrderModal from '../modals/UpdateOrderModal'
-import SubmitOrderModal from '../modals/SubmitOrderModal'
+import RemoveProductModal from '../modals/RemoveProductModal'
 
 const OrderCart = () => {
   const navigate = useNavigate()
@@ -57,9 +57,47 @@ const OrderCart = () => {
     setShowRemoveModal(false)
   }
 
-  const handleSubmitOrder = () => {
-    console.log('Submitting order:', orderItems)
-    // Add order submission logic here
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem('accessToken');
+    return {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    };
+  };
+
+  const handleSubmitOrder = async () => {
+    try {
+      const orderData = {
+        items: orderItems.map(item => ({
+          productId: item.id,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice
+        })),
+        totalAmount: calculateTotal(),
+        status: 'PENDING'
+      };
+
+      const response = await fetch('http://localhost:8080/api/orders', {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(orderData)
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log('Order submitted successfully:', result);
+        // Navigate to order confirmation or back to place order
+        navigate('/store-manager/place-order', {
+          state: { orderSubmitted: true, orderId: result.id }
+        });
+      } else {
+        console.error('Failed to submit order:', response.statusText);
+        alert('Failed to submit order. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error submitting order:', error);
+      alert('Error submitting order. Please try again.');
+    }
   }
 
   const toggleActionsDropdown = (productId) => {

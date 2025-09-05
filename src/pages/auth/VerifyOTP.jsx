@@ -48,22 +48,55 @@ const VerifyOTP = () => {
 
     setLoading(true)
 
-    // Simulate API call - accept any 6-digit OTP
-    setTimeout(() => {
-      if (otpValue.length === 6) {
+    try {
+      const response = await fetch('http://localhost:8081/api/auth/verify-otp', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          email, 
+          otp: otpValue 
+        })
+      })
+
+      if (response.ok) {
         toast.success('OTP verified successfully!')
         navigate('/auth/reset-password', { state: { email, otp: otpValue } })
       } else {
-        toast.error('Invalid OTP')
+        const error = await response.json()
+        toast.error(error.message || 'Invalid OTP')
       }
+    } catch (error) {
+      console.error('OTP verification error:', error)
+      toast.error('Network error. Please try again.')
+    } finally {
       setLoading(false)
-    }, 1000)
+    }
   }
 
-  const handleResendOTP = () => {
-    toast.success('OTP resent to your email!')
-    setOtp(['', '', '', '', '', ''])
-    inputRefs.current[0]?.focus()
+  const handleResendOTP = async () => {
+    try {
+      const response = await fetch('http://localhost:8081/api/auth/resend-otp', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email })
+      })
+
+      if (response.ok) {
+        toast.success('OTP resent to your email!')
+        setOtp(['', '', '', '', '', ''])
+        inputRefs.current[0]?.focus()
+      } else {
+        const error = await response.json()
+        toast.error(error.message || 'Failed to resend OTP')
+      }
+    } catch (error) {
+      console.error('Resend OTP error:', error)
+      toast.error('Network error. Please try again.')
+    }
   }
 
   return (
@@ -131,10 +164,10 @@ const VerifyOTP = () => {
           </div>
         </form>
 
-        {/* Demo Note */}
+        {/* Info Note */}
         <div className="mt-6 p-4 bg-purple-50 rounded-lg">
-          <p className="text-sm text-purple-800 font-medium">Demo Mode:</p>
-          <p className="text-sm text-purple-700">Enter any 6-digit code to proceed</p>
+          <p className="text-sm text-purple-800 font-medium">Check your email:</p>
+          <p className="text-sm text-purple-700">Enter the 6-digit code sent to your email address</p>
         </div>
       </div>
     </div>

@@ -12,12 +12,28 @@ const ForgotPassword = () => {
     e.preventDefault()
     setLoading(true)
 
-    // Simulate API call
-    setTimeout(() => {
-      toast.success('OTP sent to your email!')
-      navigate('/auth/verify-otp', { state: { email } })
+    try {
+      const response = await fetch('http://localhost:8081/api/auth/forgot-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email })
+      })
+
+      if (response.ok) {
+        toast.success('OTP sent to your email!')
+        navigate('/auth/verify-otp', { state: { email } })
+      } else {
+        const error = await response.json()
+        toast.error(error.message || 'Failed to send OTP')
+      }
+    } catch (error) {
+      console.error('Forgot password error:', error)
+      toast.error('Network error. Please try again.')
+    } finally {
       setLoading(false)
-    }, 1000)
+    }
   }
 
   return (

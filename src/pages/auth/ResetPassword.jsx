@@ -39,12 +39,32 @@ const ResetPassword = () => {
 
     setLoading(true)
 
-    // Simulate API call
-    setTimeout(() => {
-      toast.success('Password reset successfully!')
-      navigate('/auth/success')
+    try {
+      const response = await fetch('http://localhost:8081/api/auth/reset-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email,
+          newPassword: formData.password,
+          otp: location.state?.otp
+        })
+      })
+
+      if (response.ok) {
+        toast.success('Password reset successfully!')
+        navigate('/auth/success')
+      } else {
+        const error = await response.json()
+        toast.error(error.message || 'Failed to reset password')
+      }
+    } catch (error) {
+      console.error('Reset password error:', error)
+      toast.error('Network error. Please try again.')
+    } finally {
       setLoading(false)
-    }, 1000)
+    }
   }
 
   return (

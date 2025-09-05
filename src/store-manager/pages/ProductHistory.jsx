@@ -1,25 +1,64 @@
-import React, { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import React, { useState, useEffect } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
 import { Search, ArrowLeft, Filter, Plus } from 'lucide-react'
 
 const ProductHistory = () => {
   const navigate = useNavigate()
+  const { productId } = useParams()
   const [searchTerm, setSearchTerm] = useState('')
+  const [historyData, setHistoryData] = useState([])
+  const [loading, setLoading] = useState(true)
 
-  const historyData = [
-    { id: 1, unitPrice: '6,000 rwf', quantity: '200 units', quantityOrdered: 'Pending', orderDate: '2/2/2025', unitSum: '1,200,000 rwf', status: 'Active' },
-    { id: 2, unitPrice: '6,000 rwf', quantity: '200 units', quantityOrdered: 'Pending', orderDate: '2/2/2025', unitSum: '1,200,000 rwf', status: 'Active' },
-    { id: 3, unitPrice: '6,000 rwf', quantity: '200 units', quantityOrdered: 'Pending', orderDate: '2/2/2025', unitSum: '1,200,000 rwf', status: 'Active' },
-    { id: 4, unitPrice: '6,000 rwf', quantity: '200 units', quantityOrdered: 'Pending', orderDate: '2/2/2025', unitSum: '1,200,000 rwf', status: 'Active' },
-    { id: 5, unitPrice: '6,000 rwf', quantity: '200 units', quantityOrdered: 'Pending', orderDate: '2/2/2025', unitSum: '1,200,000 rwf', status: 'Active' },
-    { id: 6, unitPrice: '6,000 rwf', quantity: '200 units', quantityOrdered: 'Pending', orderDate: '2/2/2025', unitSum: '1,200,000 rwf', status: 'Active' },
-    { id: 7, unitPrice: '6,000 rwf', quantity: '200 units', quantityOrdered: 'Pending', orderDate: '2/2/2025', unitSum: '1,200,000 rwf', status: 'Active' },
-    { id: 8, unitPrice: '6,000 rwf', quantity: '200 units', quantityOrdered: 'Pending', orderDate: '2/2/2025', unitSum: '1,200,000 rwf', status: 'Active' },
-    { id: 9, unitPrice: '6,000 rwf', quantity: '200 units', quantityOrdered: 'Pending', orderDate: '2/2/2025', unitSum: '1,200,000 rwf', status: 'Active' },
-    { id: 10, unitPrice: '6,000 rwf', quantity: '200 units', quantityOrdered: 'Pending', orderDate: '2/2/2025', unitSum: '1,200,000 rwf', status: 'Active' },
-    { id: 11, unitPrice: '6,000 rwf', quantity: '200 units', quantityOrdered: 'Pending', orderDate: '2/2/2025', unitSum: '1,200,000 rwf', status: 'Active' },
-    { id: 12, unitPrice: '6,000 rwf', quantity: '200 units', quantityOrdered: 'Pending', orderDate: '2/2/2025', unitSum: '1,200,000 rwf', status: 'Active' },
-  ]
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem('accessToken');
+    return {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    };
+  };
+
+  const fetchProductHistory = async () => {
+    setLoading(true);
+    
+    try {
+      // Fetch orders related to this product
+      const response = await fetch(`http://localhost:8080/api/orders?productId=${productId}`, {
+        headers: getAuthHeaders()
+      });
+      
+      if (response.ok) {
+        const ordersData = await response.json();
+        
+        // Process orders data for display
+        const processedHistory = ordersData.map(order => ({
+          id: order.id,
+          unitPrice: `${order.unitPrice || order.price || 6000} rwf`,
+          quantity: `${order.quantity || 0} units`,
+          quantityOrdered: order.status || 'Pending',
+          orderDate: order.orderDate ? new Date(order.orderDate).toLocaleDateString() : 
+                    order.createdAt ? new Date(order.createdAt).toLocaleDateString() : 'N/A',
+          unitSum: `${(order.unitPrice || order.price || 6000) * (order.quantity || 0)} rwf`,
+          status: order.status || 'Active'
+        }));
+        
+        setHistoryData(processedHistory);
+      } else {
+        console.warn('Failed to fetch product history:', response.statusText);
+        setHistoryData([]);
+      }
+    } catch (error) {
+      console.warn('Error fetching product history:', error);
+      setHistoryData([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (productId) {
+      fetchProductHistory();
+    }
+  }, [productId]);
 
   const handleBackToMyStock = () => {
     navigate('/store-manager/my-stock')
@@ -103,7 +142,20 @@ const ProductHistory = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {historyData.map((item, index) => (
+              {loading ? (
+                <tr>
+                  <td colSpan="7" className="py-8 text-center text-gray-500">
+                    Loading product history...
+                  </td>
+                </tr>
+              ) : historyData.length === 0 ? (
+                <tr>
+                  <td colSpan="7" className="py-8 text-center text-gray-500">
+                    No order history found for this product
+                  </td>
+                </tr>
+              ) : (
+                historyData.map((item, index) => (
                 <tr key={item.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center justify-center w-8 h-8 bg-purple-600 text-white rounded-full text-sm font-medium">
@@ -136,7 +188,8 @@ const ProductHistory = () => {
                     </button>
                   </td>
                 </tr>
-              ))}
+                ))
+              )}
             </tbody>
           </table>
         </div>

@@ -1,89 +1,174 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, Bell, ChevronDown, Eye, FileText, Filter } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const Dashboard = () => {
+  const navigate = useNavigate();
   const [showFilter, setShowFilter] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [ordersToValidate, setOrdersToValidate] = useState([]);
+  const [overdueInvoices, setOverdueInvoices] = useState([]);
+  const [dashboardStats, setDashboardStats] = useState({
+    cashFlow: 0,
+    pendingOrders: 0,
+    overdueInvoices: 0,
+    outstandingReceivables: 0
+  });
+  const [chartData, setChartData] = useState([]);
 
-  // Sample data for Orders to Validate
-  const ordersToValidate = [
-    {
-      id: 1,
-      distributorName: 'Ronald Richards',
-      distributorAvatar: '/distributor.png',
-      salesAssistantName: 'Ronald Richards',
-      salesAssistantAvatar: '/distributor.png',
-      orderValue: '500,000rwf',
-      status: 'Pending',
-      statusColor: 'bg-yellow-100 text-yellow-800'
-    },
-    {
-      id: 2,
-      distributorName: 'Ronald Richards',
-      distributorAvatar: '/distributor.png',
-      salesAssistantName: 'Ronald Richards',
-      salesAssistantAvatar: '/distributor.png',
-      orderValue: '500,000rwf',
-      status: 'Pending',
-      statusColor: 'bg-yellow-100 text-yellow-800'
-    },
-    {
-      id: 3,
-      distributorName: 'Ronald Richards',
-      distributorAvatar: '/distributor.png',
-      salesAssistantName: 'Ronald Richards',
-      salesAssistantAvatar: '/distributor.png',
-      orderValue: '500,000rwf',
-      status: 'Pending',
-      statusColor: 'bg-yellow-100 text-yellow-800'
+  // Helper function to get authentication headers
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem('accessToken');
+    return {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    };
+  };
+
+  // Helper function to get status color
+  const getStatusColor = (status) => {
+    switch (status?.toLowerCase()) {
+      case 'approved':
+      case 'paid':
+        return 'bg-green-100 text-green-800';
+      case 'pending':
+      case 'partially paid':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'rejected':
+      case 'overdue':
+        return 'bg-red-100 text-red-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
     }
-  ];
+  };
 
-  // Sample data for Overdue Invoices
-  const overdueInvoices = [
-    {
-      id: 1,
-      invoiceId: '2',
-      distributorName: 'Ronald Richards',
-      distributorAvatar: '/distributor.png',
-      invoiceAmount: '2,000,000rwf',
-      status: 'Pending',
-      statusColor: 'bg-yellow-100 text-yellow-800',
-      dueDate: '2/2/2025',
-      overdueDate: '4/4/2025'
-    },
-    {
-      id: 2,
-      invoiceId: '2',
-      distributorName: 'Ronald Richards',
-      distributorAvatar: '/distributor.png',
-      invoiceAmount: '2,000,000rwf',
-      status: 'Pending',
-      statusColor: 'bg-yellow-100 text-yellow-800',
-      dueDate: '2/2/2025',
-      overdueDate: '4/4/2025'
-    },
-    {
-      id: 3,
-      invoiceId: '2',
-      distributorName: 'Ronald Richards',
-      distributorAvatar: '/distributor.png',
-      invoiceAmount: '2,000,000rwf',
-      status: 'Pending',
-      statusColor: 'bg-yellow-100 text-yellow-800',
-      dueDate: '2/2/2025',
-      overdueDate: '4/4/2025'
+  // Fetch dashboard data
+  const fetchDashboardData = async () => {
+    setLoading(true);
+    try {
+      const [ordersResponse, invoicesResponse, paymentsResponse] = await Promise.all([
+        fetch('http://localhost:8080/api/orders', { headers: getAuthHeaders() }),
+        fetch('http://localhost:8080/api/invoices', { headers: getAuthHeaders() }),
+        fetch('http://localhost:8080/api/payments', { headers: getAuthHeaders() })
+      ]);
+
+      if (ordersResponse.ok && invoicesResponse.ok) {
+        const orders = await ordersResponse.json();
+        const invoices = await invoicesResponse.json();
+        const payments = paymentsResponse.ok ? await paymentsResponse.json() : [];
+
+        // Process orders to validate (pending orders)
+        const pendingOrders = orders.filter(order => order.status === 'PENDING' || order.status === 'Pending');
+        const processedOrders = pendingOrders.slice(0, 3).map(order => ({
+          id: order.id,
+          distributorName: order.customerName || order.distributorName || 'Unknown Distributor',
+          distributorAvatar: '/distributor.png',
+          salesAssistantName: order.salesAssistant || order.createdBy || 'Unknown Sales Assistant',
+          salesAssistantAvatar: '/distributor.png',
+          orderValue: `${(order.totalAmount || order.amount || 0).toLocaleString()}rwf`,
+          status: order.status || 'Pending',
+          statusColor: getStatusColor(order.status)
+        }));
+        setOrdersToValidate(processedOrders);
+
+        // Process overdue invoices
+        const currentDate = new Date();
+        const overdue = invoices.filter(invoice => {
+          const dueDate = new Date(invoice.dueDate || invoice.paymentDue);
+          return dueDate < currentDate && (invoice.status === 'PENDING' || invoice.status === 'Pending');
+        });
+        const processedOverdueInvoices = overdue.slice(0, 3).map(invoice => ({
+          id: invoice.id,
+          invoiceId: invoice.invoiceNumber || invoice.id,
+          distributorName: invoice.customerName || invoice.distributorName || 'Unknown Distributor',
+          distributorAvatar: '/distributor.png',
+          invoiceAmount: `${(invoice.totalAmount || invoice.amount || 0).toLocaleString()}rwf`,
+          status: invoice.status || 'Pending',
+          statusColor: getStatusColor('overdue'),
+          dueDate: new Date(invoice.dueDate || invoice.paymentDue).toLocaleDateString(),
+          overdueDate: new Date().toLocaleDateString()
+        }));
+        setOverdueInvoices(processedOverdueInvoices);
+
+        // Calculate dashboard stats
+        const totalRevenue = orders.reduce((sum, order) => sum + (order.totalAmount || 0), 0);
+        const totalPayments = payments.reduce((sum, payment) => sum + (payment.amount || 0), 0);
+        const cashFlow = totalRevenue - totalPayments;
+        const pendingOrdersCount = pendingOrders.length;
+        const overdueInvoicesCount = overdue.length;
+        const outstandingReceivables = invoices
+          .filter(inv => inv.status === 'PENDING' || inv.status === 'Pending')
+          .reduce((sum, inv) => sum + (inv.totalAmount || inv.amount || 0), 0);
+
+        setDashboardStats({
+          cashFlow: Math.round(cashFlow / 1000000), // Convert to millions
+          pendingOrders: pendingOrdersCount,
+          overdueInvoices: overdueInvoicesCount,
+          outstandingReceivables: Math.round(outstandingReceivables / 1000000) // Convert to millions
+        });
+
+        // Generate chart data for outstanding invoices by age
+        const ageRanges = [
+          { label: '0-15 Days', min: 0, max: 15 },
+          { label: '16-30 Days', min: 16, max: 30 },
+          { label: '31-60 Days', min: 31, max: 60 },
+          { label: '61-90 Days', min: 61, max: 90 },
+          { label: '90+ Days', min: 91, max: Infinity }
+        ];
+
+        const chartDataProcessed = ageRanges.map(range => {
+          const invoicesInRange = invoices.filter(invoice => {
+            const daysDiff = Math.floor((currentDate - new Date(invoice.dueDate || invoice.paymentDue)) / (1000 * 60 * 60 * 24));
+            return daysDiff >= range.min && daysDiff <= range.max;
+          });
+          const percentage = invoices.length > 0 ? (invoicesInRange.length / invoices.length) * 100 : 0;
+          return { percentage: Math.round(percentage), label: range.label };
+        });
+        setChartData(chartDataProcessed);
+      } else {
+        setOrdersToValidate([]);
+        setOverdueInvoices([]);
+      }
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+      setOrdersToValidate([]);
+      setOverdueInvoices([]);
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
 
-  // Chart data for Outstanding Invoices by Age
-  const chartData = [
-    { percentage: 20, label: '0%' },
-    { percentage: 40, label: '20%' },
-    { percentage: 30, label: '40%' },
-    { percentage: 80, label: '60%' },
-    { percentage: 50, label: '80%' },
-    { percentage: 70, label: '100%' }
-  ];
+  // Handle order approval
+  const handleApproveOrder = async (orderId) => {
+    try {
+      const response = await fetch(`http://localhost:8080/api/orders/${orderId}/approve`, {
+        method: 'PUT',
+        headers: getAuthHeaders()
+      });
+      if (response.ok) {
+        fetchDashboardData(); // Refresh data
+      }
+    } catch (error) {
+      console.error('Error approving order:', error);
+    }
+  };
+
+  // Filter orders based on search term
+  const filteredOrders = ordersToValidate.filter(order =>
+    order.distributorName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    order.salesAssistantName.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  // Filter invoices based on search term
+  const filteredInvoices = overdueInvoices.filter(invoice =>
+    invoice.distributorName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    invoice.invoiceId.toString().includes(searchTerm.toLowerCase())
+  );
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
 
   return (
     <div className="min-h-screen bg-white">
@@ -117,7 +202,7 @@ const Dashboard = () => {
             <div className="flex justify-between items-start">
               <div>
                 <p className="text-sm text-gray-500 mb-1">Cash Flow (YTD)</p>
-                <p className="text-2xl font-bold text-gray-900">580</p>
+                <p className="text-2xl font-bold text-gray-900">{loading ? '...' : dashboardStats.cashFlow}M</p>
                 <p className="text-xs text-gray-400 mt-1">Updated: July 14, 2025</p>
               </div>
               <div className="text-right">
@@ -136,7 +221,7 @@ const Dashboard = () => {
             <div className="flex justify-between items-start">
               <div>
                 <p className="text-sm text-gray-500 mb-1">Orders Pending Validation</p>
-                <p className="text-2xl font-bold text-gray-900">100</p>
+                <p className="text-2xl font-bold text-gray-900">{loading ? '...' : dashboardStats.pendingOrders}</p>
                 <p className="text-xs text-gray-400 mt-1">Updated: July 14, 2025</p>
               </div>
               <div className="text-right">
@@ -155,7 +240,7 @@ const Dashboard = () => {
             <div className="flex justify-between items-start">
               <div>
                 <p className="text-sm text-gray-500 mb-1">Overdue Invoices</p>
-                <p className="text-2xl font-bold text-gray-900">500</p>
+                <p className="text-2xl font-bold text-gray-900">{loading ? '...' : dashboardStats.overdueInvoices}</p>
                 <p className="text-xs text-gray-400 mt-1">Updated: July 14, 2025</p>
               </div>
               <div className="text-right">
@@ -174,7 +259,7 @@ const Dashboard = () => {
             <div className="flex justify-between items-start">
               <div>
                 <p className="text-sm text-gray-500 mb-1">Sent Outstanding Receivables</p>
-                <p className="text-2xl font-bold text-gray-900">50</p>
+                <p className="text-2xl font-bold text-gray-900">{loading ? '...' : dashboardStats.outstandingReceivables}M</p>
                 <p className="text-xs text-gray-400 mt-1">Updated: July 14, 2025</p>
               </div>
               <div className="text-right">
@@ -193,10 +278,16 @@ const Dashboard = () => {
         <div className="mb-8">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Links</h2>
           <div className="flex space-x-3">
-            <button className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 text-sm">
+            <button 
+              onClick={() => navigate('/accountant/invoices')}
+              className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 text-sm"
+            >
               View Aging Report
             </button>
-            <button className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 text-sm">
+            <button 
+              onClick={() => navigate('/accountant/payments/record')}
+              className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 text-sm"
+            >
               Record a Payment
             </button>
           </div>
@@ -283,8 +374,21 @@ const Dashboard = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {ordersToValidate.map((order) => (
-                    <tr key={order.id} className="border-b border-gray-100 hover:bg-gray-50">
+                  {loading ? (
+                    <tr>
+                      <td colSpan="5" className="py-8 text-center text-gray-500">
+                        Loading orders...
+                      </td>
+                    </tr>
+                  ) : filteredOrders.length === 0 ? (
+                    <tr>
+                      <td colSpan="5" className="py-8 text-center text-gray-500">
+                        No orders to validate
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredOrders.map((order) => (
+                      <tr key={order.id} className="border-b border-gray-100 hover:bg-gray-50">
                       <td className="py-3 px-4">
                         <div className="flex items-center space-x-3">
                           <img 
@@ -315,7 +419,10 @@ const Dashboard = () => {
                       </td>
                       <td className="py-3 px-4">
                         <div className="flex items-center space-x-2">
-                          <button className="inline-flex items-center px-3 py-1 bg-purple-600 text-white text-xs rounded hover:bg-purple-700">
+                          <button 
+                            onClick={() => handleApproveOrder(order.id)}
+                            className="inline-flex items-center px-3 py-1 bg-purple-600 text-white text-xs rounded hover:bg-purple-700"
+                          >
                             <Eye className="w-3 h-3 mr-1" />
                             Approve
                           </button>
@@ -325,7 +432,8 @@ const Dashboard = () => {
                         </div>
                       </td>
                     </tr>
-                  ))}
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
@@ -397,7 +505,20 @@ const Dashboard = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {overdueInvoices.map((invoice) => (
+                  {loading ? (
+                    <tr>
+                      <td colSpan="7" className="py-8 text-center text-gray-500">
+                        Loading invoices...
+                      </td>
+                    </tr>
+                  ) : filteredInvoices.length === 0 ? (
+                    <tr>
+                      <td colSpan="7" className="py-8 text-center text-gray-500">
+                        No overdue invoices
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredInvoices.map((invoice) => (
                     <tr key={invoice.id} className="border-b border-gray-100 hover:bg-gray-50">
                       <td className="py-3 px-4">
                         <span className="text-sm text-gray-900">{invoice.invoiceId}</span>
@@ -432,7 +553,8 @@ const Dashboard = () => {
                         </button>
                       </td>
                     </tr>
-                  ))}
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>

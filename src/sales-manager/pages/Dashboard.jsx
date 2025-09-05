@@ -1,80 +1,151 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Search, Bell, ChevronDown, TrendingUp, DollarSign, Users, Award, BarChart3, CheckCircle, DollarSign as PriceIcon, Activity } from 'lucide-react';
 
 const Dashboard = () => {
-  // Sample data for the bar chart - matching the image exactly
-  const chartData = [
-    { month: 'Jan', value: 20, percentage: 20 },
-    { month: 'Feb', value: 55, percentage: 55 },
-    { month: 'Mar', value: 33, percentage: 33 },
-    { month: 'Apr', value: 83, percentage: 83 },
-    { month: 'May', value: 45, percentage: 45 },
-    { month: 'Jun', value: 65, percentage: 65 },
-    { month: 'Jul', value: 37, percentage: 37 },
-    { month: 'Aug', value: 100, percentage: 100 },
-    { month: 'Sep', value: 45, percentage: 45 },
-    { month: 'Oct', value: 72, percentage: 72 },
-    { month: 'Nov', value: 100, percentage: 100 },
-    { month: 'Dec', value: 62, percentage: 62 }
-  ];
+  const navigate = useNavigate();
+  const [dashboardData, setDashboardData] = useState({
+    totalOrders: 0,
+    totalRevenue: 0,
+    revenueVsTarget: 0,
+    bestDistributor: 'Loading...',
+    pendingApprovals: [],
+    chartData: [],
+    loading: true,
+    error: null
+  });
 
-  // Sample pending approval data matching the image
-  const pendingApprovals = [
-    {
-      id: 1,
-      distributorName: 'Louise Watson',
-      salesAssistantName: 'Louise Watson',
-      orderValue: '1,000 rwf',
-      timePending: '1day 8hrs',
-      distributorAvatar: '/distributor.png',
-      salesAvatar: '/distributor.png'
-    },
-    {
-      id: 2,
-      distributorName: 'Darlene Robertson',
-      salesAssistantName: 'Darlene Robertson',
-      orderValue: '1,000.00 rwf',
-      timePending: '2days 5hrs',
-      distributorAvatar: '/distributor.png',
-      salesAvatar: '/distributor.png'
-    },
-    {
-      id: 3,
-      distributorName: 'Jacob Jones',
-      salesAssistantName: 'Jacob Jones',
-      orderValue: '2,000.00 rwf',
-      timePending: '1month 2days 3hrs',
-      distributorAvatar: '/distributor.png',
-      salesAvatar: '/distributor.png'
-    },
-    {
-      id: 4,
-      distributorName: 'Kathryn Murphy',
-      salesAssistantName: 'Kathryn Murphy',
-      orderValue: '500.00 rwf',
-      timePending: '2days 5hrs',
-      distributorAvatar: '/distributor.png',
-      salesAvatar: '/distributor.png'
-    },
-    {
-      id: 5,
-      distributorName: 'Leslie Alexander',
-      salesAssistantName: 'Leslie Alexander',
-      orderValue: '400.00 rwf',
-      timePending: '2days 5hrs',
-      distributorAvatar: '/distributor.png',
-      salesAvatar: '/distributor.png'
-    },
-    {
-      id: 6,
-      distributorName: 'Ronald Richards',
-      salesAssistantName: 'Ronald Richards',
-      orderValue: '500.00 rwf',
-      timePending: '2weeks 5days 2hrs',
-      distributorAvatar: '/distributor.png',
-      salesAvatar: '/distributor.png'
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem('accessToken');
+    return {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    };
+  };
+
+  const fetchDashboardData = async () => {
+    setDashboardData(prev => ({ ...prev, loading: true, error: null }));
+    
+    try {
+      // Fetch orders for stats
+      const ordersResponse = await fetch('http://localhost:8080/api/orders', {
+        headers: getAuthHeaders()
+      });
+      
+      let orders = [];
+      if (ordersResponse.ok) {
+        orders = await ordersResponse.json();
+      }
+
+      // Fetch pending orders for approval
+      const pendingResponse = await fetch('http://localhost:8080/api/orders?status=PENDING', {
+        headers: getAuthHeaders()
+      });
+      
+      let pendingOrders = [];
+      if (pendingResponse.ok) {
+        pendingOrders = await pendingResponse.json();
+      }
+
+      // Calculate metrics
+      const totalOrders = orders.length;
+      const totalRevenue = orders.reduce((sum, order) => {
+        const amount = parseFloat(order.totalAmount || order.amount || 0);
+        return sum + amount;
+      }, 0);
+
+      // Process pending approvals
+      const processedPendingApprovals = pendingOrders.slice(0, 6).map(order => ({
+        id: order.id,
+        distributorName: order.customerName || order.distributorName || 'Unknown Distributor',
+        salesAssistantName: order.salesAssistant || order.createdBy || 'Unknown Sales Assistant',
+        orderValue: `${(order.totalAmount || order.amount || 0).toLocaleString()} rwf`,
+        timePending: calculateTimePending(order.createdAt || order.orderDate),
+        distributorAvatar: '/distributor.png',
+        salesAvatar: '/distributor.png'
+      }));
+
+      // Generate chart data based on orders
+      const chartData = generateChartData(orders);
+
+      setDashboardData({
+        totalOrders,
+        totalRevenue,
+        revenueVsTarget: totalRevenue * 0.8, // Assuming target is 20% higher
+        bestDistributor: findBestDistributor(orders),
+        pendingApprovals: processedPendingApprovals,
+        chartData,
+        loading: false,
+        error: null
+      });
+    } catch (error) {
+      console.warn('Error fetching dashboard data:', error);
+      setDashboardData(prev => ({
+        ...prev,
+        loading: false,
+        error: error.message
+      }));
     }
-  ];
+  };
+
+  const calculateTimePending = (dateString) => {
+    if (!dateString) return 'N/A';
+    const orderDate = new Date(dateString);
+    const now = new Date();
+    const diffInMs = now - orderDate;
+    const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+    const diffInHours = Math.floor((diffInMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    
+    if (diffInDays > 0) {
+      return `${diffInDays}day${diffInDays > 1 ? 's' : ''} ${diffInHours}hrs`;
+    }
+    return `${diffInHours}hrs`;
+  };
+
+  const findBestDistributor = (orders) => {
+    if (orders.length === 0) return 'No data';
+    // Group by distributor and calculate total revenue
+    const distributorRevenue = {};
+    orders.forEach(order => {
+      const distributor = order.customerName || order.distributorName || 'Unknown';
+      const amount = parseFloat(order.totalAmount || order.amount || 0);
+      distributorRevenue[distributor] = (distributorRevenue[distributor] || 0) + amount;
+    });
+    
+    const bestDistributor = Object.keys(distributorRevenue).reduce((a, b) => 
+      distributorRevenue[a] > distributorRevenue[b] ? a : b, 'No data'
+    );
+    
+    return bestDistributor;
+  };
+
+  const generateChartData = (orders) => {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const currentYear = new Date().getFullYear();
+    
+    const monthlyData = months.map((month, index) => {
+      const monthOrders = orders.filter(order => {
+        const orderDate = new Date(order.createdAt || order.orderDate);
+        return orderDate.getFullYear() === currentYear && orderDate.getMonth() === index;
+      });
+      
+      const monthRevenue = monthOrders.reduce((sum, order) => {
+        return sum + parseFloat(order.totalAmount || order.amount || 0);
+      }, 0);
+      
+      return {
+        month,
+        value: monthRevenue,
+        percentage: Math.min((monthRevenue / 10000) * 100, 100) // Normalize to percentage
+      };
+    });
+    
+    return monthlyData;
+  };
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
 
   return (
     <div className="flex-1 p-6 bg-gray-50">
@@ -123,7 +194,7 @@ const Dashboard = () => {
                 </div>
                 <span className="text-xs text-gray-500">April</span>
               </div>
-              <div className="text-3xl font-bold text-gray-900 mb-1">560</div>
+              <div className="text-3xl font-bold text-gray-900 mb-1">{dashboardData.loading ? 'Loading...' : dashboardData.totalOrders}</div>
               <div className="flex items-center text-sm">
                 <span className="text-green-600 font-medium">↗ 8.5%</span>
               </div>
@@ -143,7 +214,7 @@ const Dashboard = () => {
                 </div>
                 <span className="text-xs text-gray-500">April</span>
               </div>
-              <div className="text-3xl font-bold text-gray-900 mb-1">1,050,000 rwf</div>
+              <div className="text-3xl font-bold text-gray-900 mb-1">{dashboardData.loading ? 'Loading...' : `${dashboardData.totalRevenue.toLocaleString()} rwf`}</div>
               <div className="flex items-center text-sm">
                 <span className="text-green-600 font-medium">↗ 4.3%</span>
               </div>
@@ -163,7 +234,7 @@ const Dashboard = () => {
                 </div>
                 <span className="text-xs text-gray-500">April</span>
               </div>
-              <div className="text-3xl font-bold text-gray-900 mb-1">500,000rwf</div>
+              <div className="text-3xl font-bold text-gray-900 mb-1">{dashboardData.loading ? 'Loading...' : `${dashboardData.revenueVsTarget.toLocaleString()}rwf`}</div>
               <div className="flex items-center text-sm">
                 <span className="text-red-600 font-medium">↘ 4.3%</span>
               </div>
@@ -183,7 +254,7 @@ const Dashboard = () => {
                 </div>
                 <span className="text-xs text-gray-500">April</span>
               </div>
-              <div className="text-3xl font-bold text-gray-900 mb-1">John Doe</div>
+              <div className="text-3xl font-bold text-gray-900 mb-1">{dashboardData.loading ? 'Loading...' : dashboardData.bestDistributor}</div>
               <div className="text-sm text-gray-500">Distributor of the month</div>
             </div>
           </div>
@@ -203,7 +274,7 @@ const Dashboard = () => {
         <div className="ml-4 relative">
           {/* Bars */}
           <div className="flex items-end justify-between h-80 space-x-2 relative">
-            {[
+            {(dashboardData.chartData.length > 0 ? dashboardData.chartData : [
               { month: 'Jan', percentage: 20 },
               { month: 'Feb', percentage: 55 },
               { month: 'Mar', percentage: 35 },
@@ -216,7 +287,7 @@ const Dashboard = () => {
               { month: 'Oct', percentage: 72 },
               { month: 'Nov', percentage: 100 },
               { month: 'Dec', percentage: 62 }
-            ].map((data, index) => (
+            ]).map((data, index) => (
               <div key={index} className="flex flex-col items-center flex-1 group relative">
                 {/* Tooltip for Feb */}
                 {index === 1 && (
@@ -278,7 +349,20 @@ const Dashboard = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {pendingApprovals.map((approval) => (
+                  {dashboardData.loading ? (
+                    <tr>
+                      <td colSpan="5" className="py-8 text-center text-gray-500">
+                        Loading pending approvals...
+                      </td>
+                    </tr>
+                  ) : dashboardData.pendingApprovals.length === 0 ? (
+                    <tr>
+                      <td colSpan="5" className="py-8 text-center text-gray-500">
+                        No pending approvals
+                      </td>
+                    </tr>
+                  ) : (
+                    dashboardData.pendingApprovals.map((approval) => (
                     <tr key={approval.id} className="hover:bg-gray-50">
                       <td className="py-4">
                         <div className="flex items-center space-x-3">
@@ -312,7 +396,8 @@ const Dashboard = () => {
                         </button>
                       </td>
                     </tr>
-                  ))}
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
@@ -343,17 +428,26 @@ const Dashboard = () => {
         <div className="space-y-4">
           <h3 className="text-lg font-semibold text-gray-900">Quick Links</h3>
           
-          <button className="w-full flex items-center justify-center space-x-2 p-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
+          <button 
+            onClick={() => navigate('/sales-manager/orders')}
+            className="w-full flex items-center justify-center space-x-2 p-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+          >
             <CheckCircle className="w-5 h-5" />
             <span>Approve Orders</span>
           </button>
           
-          <button className="w-full flex items-center justify-center space-x-2 p-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
+          <button 
+            onClick={() => navigate('/sales-manager/pricing-catalog')}
+            className="w-full flex items-center justify-center space-x-2 p-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+          >
             <PriceIcon className="w-5 h-5" />
             <span>Set Pricing</span>
           </button>
           
-          <button className="w-full flex items-center justify-center space-x-2 p-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
+          <button 
+            onClick={() => navigate('/sales-manager/sales-analytics')}
+            className="w-full flex items-center justify-center space-x-2 p-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+          >
             <Activity className="w-5 h-5" />
             <span>Track Performance</span>
           </button>

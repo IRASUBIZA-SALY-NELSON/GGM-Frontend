@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, Bell, ChevronDown, Filter, Eye, FileText } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -7,110 +7,65 @@ const Orders = () => {
   const [showApproveModal, setShowApproveModal] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
+  const [ordersData, setOrdersData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
 
-  // Sample orders data matching the design
-  const ordersData = [
-    {
-      id: 1,
-      distributorName: 'Leasie Watson',
-      distributorAvatar: '/distributor.png',
-      salesAssistantName: 'Leasie Watson',
-      salesAssistantAvatar: '/distributor.png',
-      orderValue: '1,000rwf',
-      status: 'Approved',
-      statusColor: 'text-green-600 bg-green-100'
-    },
-    {
-      id: 2,
-      distributorName: 'Leasie Watson',
-      distributorAvatar: '/distributor.png',
-      salesAssistantName: 'Leasie Watson',
-      salesAssistantAvatar: '/distributor.png',
-      orderValue: '1,000rwf',
-      status: 'Approved',
-      statusColor: 'text-green-600 bg-green-100'
-    },
-    {
-      id: 3,
-      distributorName: 'Leasie Watson',
-      distributorAvatar: '/distributor.png',
-      salesAssistantName: 'Leasie Watson',
-      salesAssistantAvatar: '/distributor.png',
-      orderValue: '1,000rwf',
-      status: 'Approved',
-      statusColor: 'text-green-600 bg-green-100'
-    },
-    {
-      id: 4,
-      distributorName: 'Leasie Watson',
-      distributorAvatar: '/distributor.png',
-      salesAssistantName: 'Leasie Watson',
-      salesAssistantAvatar: '/distributor.png',
-      orderValue: '1,000rwf',
-      status: 'Approved',
-      statusColor: 'text-green-600 bg-green-100'
-    },
-    {
-      id: 5,
-      distributorName: 'Leslie Alexander',
-      distributorAvatar: '/distributor.png',
-      salesAssistantName: 'Leslie Alexander',
-      salesAssistantAvatar: '/distributor.png',
-      orderValue: '400,000rwf',
-      status: 'Rejected',
-      statusColor: 'text-red-600 bg-red-100'
-    },
-    {
-      id: 6,
-      distributorName: 'Leslie Alexander',
-      distributorAvatar: '/distributor.png',
-      salesAssistantName: 'Leslie Alexander',
-      salesAssistantAvatar: '/distributor.png',
-      orderValue: '400,000rwf',
-      status: 'Rejected',
-      statusColor: 'text-red-600 bg-red-100'
-    },
-    {
-      id: 7,
-      distributorName: 'Leslie Alexander',
-      distributorAvatar: '/distributor.png',
-      salesAssistantName: 'Leslie Alexander',
-      salesAssistantAvatar: '/distributor.png',
-      orderValue: '400,000rwf',
-      status: 'Rejected',
-      statusColor: 'text-red-600 bg-red-100'
-    },
-    {
-      id: 8,
-      distributorName: 'Ronald Richards',
-      distributorAvatar: '/distributor.png',
-      salesAssistantName: 'Ronald Richards',
-      salesAssistantAvatar: '/distributor.png',
-      orderValue: '500,000rwf',
-      status: 'Pending',
-      statusColor: 'text-yellow-600 bg-yellow-100'
-    },
-    {
-      id: 9,
-      distributorName: 'Ronald Richards',
-      distributorAvatar: '/distributor.png',
-      salesAssistantName: 'Ronald Richards',
-      salesAssistantAvatar: '/distributor.png',
-      orderValue: '500,000rwf',
-      status: 'Pending',
-      statusColor: 'text-yellow-600 bg-yellow-100'
-    },
-    {
-      id: 10,
-      distributorName: 'Ronald Richards',
-      distributorAvatar: '/distributor.png',
-      salesAssistantName: 'Ronald Richards',
-      salesAssistantAvatar: '/distributor.png',
-      orderValue: '500,000rwf',
-      status: 'Pending',
-      statusColor: 'text-yellow-600 bg-yellow-100'
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem('accessToken');
+    return {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    };
+  };
+
+  const getStatusColor = (status) => {
+    switch (status?.toLowerCase()) {
+      case 'approved': case 'completed': return 'text-green-600 bg-green-100';
+      case 'pending': return 'text-yellow-600 bg-yellow-100';
+      case 'rejected': case 'cancelled': return 'text-red-600 bg-red-100';
+      default: return 'text-gray-600 bg-gray-100';
     }
-  ];
+  };
+
+  const fetchOrders = async () => {
+    setLoading(true);
+    
+    try {
+      const response = await fetch('http://localhost:8080/api/orders', {
+        headers: getAuthHeaders()
+      });
+      
+      if (response.ok) {
+        const orders = await response.json();
+        
+        const processedOrders = orders.map(order => ({
+          id: order.id,
+          distributorName: order.customerName || order.distributorName || 'Unknown Distributor',
+          distributorAvatar: '/distributor.png',
+          salesAssistantName: order.salesAssistant || order.createdBy || 'Unknown Sales Assistant',
+          salesAssistantAvatar: '/distributor.png',
+          orderValue: `${(order.totalAmount || order.amount || 0).toLocaleString()}rwf`,
+          status: order.status || 'Pending',
+          statusColor: getStatusColor(order.status)
+        }));
+        
+        setOrdersData(processedOrders);
+      } else {
+        console.warn('Failed to fetch orders:', response.statusText);
+        setOrdersData([]);
+      }
+    } catch (error) {
+      console.warn('Error fetching orders:', error);
+      setOrdersData([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchOrders();
+  }, []);
 
   const handleViewOrder = (orderId) => {
     navigate(`/sales-manager/orders/${orderId}`);
@@ -126,14 +81,52 @@ const Orders = () => {
     setShowRejectModal(true);
   };
 
-  const confirmApprove = () => {
-    // Handle approve logic here
+  const confirmApprove = async () => {
+    if (!selectedOrder) return;
+    
+    try {
+      const response = await fetch(`http://localhost:8080/api/orders/${selectedOrder.id}/approve`, {
+        method: 'PUT',
+        headers: getAuthHeaders()
+      });
+      
+      if (response.ok) {
+        // Refresh orders list
+        fetchOrders();
+      } else {
+        console.error('Failed to approve order');
+        alert('Failed to approve order. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error approving order:', error);
+      alert('Error approving order. Please try again.');
+    }
+    
     setShowApproveModal(false);
     setSelectedOrder(null);
   };
 
-  const confirmReject = () => {
-    // Handle reject logic here
+  const confirmReject = async () => {
+    if (!selectedOrder) return;
+    
+    try {
+      const response = await fetch(`http://localhost:8080/api/orders/${selectedOrder.id}/reject`, {
+        method: 'PUT',
+        headers: getAuthHeaders()
+      });
+      
+      if (response.ok) {
+        // Refresh orders list
+        fetchOrders();
+      } else {
+        console.error('Failed to reject order');
+        alert('Failed to reject order. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error rejecting order:', error);
+      alert('Error rejecting order. Please try again.');
+    }
+    
     setShowRejectModal(false);
     setSelectedOrder(null);
   };
@@ -153,6 +146,8 @@ const Orders = () => {
             <input
               type="text"
               placeholder="Search..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10 pr-4 py-2 w-80 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
             />
           </div>
@@ -206,7 +201,26 @@ const Orders = () => {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {ordersData.map((order) => (
+            {loading ? (
+              <tr>
+                <td colSpan="5" className="py-8 text-center text-gray-500">
+                  Loading orders...
+                </td>
+              </tr>
+            ) : ordersData.length === 0 ? (
+              <tr>
+                <td colSpan="5" className="py-8 text-center text-gray-500">
+                  No orders found
+                </td>
+              </tr>
+            ) : (
+              ordersData
+                .filter(order => 
+                  order.distributorName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                  order.salesAssistantName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                  order.status.toLowerCase().includes(searchTerm.toLowerCase())
+                )
+                .map((order) => (
               <tr key={order.id} className="hover:bg-gray-50">
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center">
@@ -249,7 +263,8 @@ const Orders = () => {
                   </button>
                 </td>
               </tr>
-            ))}
+                ))
+            )}
           </tbody>
         </table>
       </div>

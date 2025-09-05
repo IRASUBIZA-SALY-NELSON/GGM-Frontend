@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, Filter, CheckCircle, XCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -7,58 +7,33 @@ const SalesAnalytics = () => {
   const [showApproveModal, setShowApproveModal] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
+  const [analyticsData, setAnalyticsData] = useState({
+    grossProfit: 0,
+    totalCOGS: 0,
+    totalRevenue: 0,
+    loading: true
+  });
+  const [chartData, setChartData] = useState([]);
+  const [invoiceData, setInvoiceData] = useState([]);
+  const [ordersToValidate, setOrdersToValidate] = useState([]);
+  const [searchTerm, setSearchTerm] = useState('');
 
-  // Sample chart data for Revenue vs. COGS by Product Category
-  const chartData = [
-    { category: 'Accessories', percentage: 25, color: 'bg-purple-600' },
-    { category: 'Footwear', percentage: 55, color: 'bg-purple-600' },
-    { category: 'Clothing', percentage: 35, color: 'bg-purple-600' },
-    { category: 'Electronics', percentage: 85, color: 'bg-purple-600' },
-    { category: 'Home & Garden', percentage: 45, color: 'bg-purple-600' },
-    { category: 'Sports & Outdoors', percentage: 65, color: 'bg-purple-600' }
-  ];
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem('accessToken');
+    return {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    };
+  };
 
-  // Sample invoice analytics data
-  const invoiceData = [
-    { status: 'Paid', percentage: 30, count: 30, color: '#8B5CF6' },
-    { status: 'Unpaid', percentage: 30, count: 30, color: '#A78BFA' },
-    { status: 'Partial Paid', percentage: 20, count: 20, color: '#C4B5FD' },
-    { status: 'Draft', percentage: 40, count: 40, color: '#DDD6FE' }
-  ];
-
-  // Sample orders to validate data
-  const ordersToValidate = [
-    {
-      id: 1,
-      distributorName: 'Ronald Richards',
-      distributorAvatar: '/distributor.png',
-      salesAssistantName: 'Ronald Richards',
-      salesAssistantAvatar: '/distributor.png',
-      orderValue: '500,000rwf',
-      status: 'Pending',
-      statusColor: 'text-yellow-600 bg-yellow-100'
-    },
-    {
-      id: 2,
-      distributorName: 'Ronald Richards',
-      distributorAvatar: '/distributor.png',
-      salesAssistantName: 'Ronald Richards',
-      salesAssistantAvatar: '/distributor.png',
-      orderValue: '500,000rwf',
-      status: 'Pending',
-      statusColor: 'text-yellow-600 bg-yellow-100'
-    },
-    {
-      id: 3,
-      distributorName: 'Ronald Richards',
-      distributorAvatar: '/distributor.png',
-      salesAssistantName: 'Ronald Richards',
-      salesAssistantAvatar: '/distributor.png',
-      orderValue: '500,000rwf',
-      status: 'Pending',
-      statusColor: 'text-yellow-600 bg-yellow-100'
+  const getStatusColor = (status) => {
+    switch (status?.toLowerCase()) {
+      case 'approved': case 'completed': return 'text-green-600 bg-green-100';
+      case 'pending': return 'text-yellow-600 bg-yellow-100';
+      case 'rejected': case 'cancelled': return 'text-red-600 bg-red-100';
+      default: return 'text-gray-600 bg-gray-100';
     }
-  ];
+  };
 
   const handleApprove = (order) => {
     setSelectedOrder(order);
@@ -70,12 +45,153 @@ const SalesAnalytics = () => {
     setShowRejectModal(true);
   };
 
-  const confirmApprove = () => {
+  const fetchAnalyticsData = async () => {
+    try {
+      // Fetch orders for analytics calculations
+      const ordersResponse = await fetch('http://localhost:8080/api/orders', {
+        headers: getAuthHeaders()
+      });
+      
+      // Fetch invoices for invoice analytics
+      const invoicesResponse = await fetch('http://localhost:8080/api/invoices', {
+        headers: getAuthHeaders()
+      });
+      
+      // Fetch products for category analytics
+      const productsResponse = await fetch('http://localhost:8080/api/products', {
+        headers: getAuthHeaders()
+      });
+      
+      if (ordersResponse.ok && invoicesResponse.ok && productsResponse.ok) {
+        const orders = await ordersResponse.json();
+        const invoices = await invoicesResponse.json();
+        const products = await productsResponse.json();
+        
+        // Calculate analytics
+        const totalRevenue = orders.reduce((sum, order) => sum + (order.totalAmount || 0), 0);
+        const totalCOGS = products.reduce((sum, product) => sum + ((product.cost || 0) * (product.stock || 0)), 0);
+        const grossProfit = totalRevenue - totalCOGS;
+        
+        setAnalyticsData({
+          grossProfit,
+          totalCOGS,
+          totalRevenue,
+          loading: false
+        });
+        
+        // Process category data for chart
+        const categoryMap = {};
+        products.forEach(product => {
+          const category = product.category || 'Uncategorized';
+          if (!categoryMap[category]) {
+            categoryMap[category] = { revenue: 0, cost: 0 };
+          }
+          categoryMap[category].revenue += (product.price || 0) * (product.stock || 0);
+          categoryMap[category].cost += (product.cost || 0) * (product.stock || 0);
+        });
+        
+        const processedChartData = Object.entries(categoryMap).map(([category, data]) => ({
+          category,
+          percentage: Math.min(100, Math.max(0, (data.revenue / (totalRevenue || 1)) * 100)),
+          color: 'bg-purple-600'
+        }));
+        
+        setChartData(processedChartData.slice(0, 6)); // Limit to 6 categories
+        
+        // Process invoice data
+        const invoiceStatusMap = {};
+        invoices.forEach(invoice => {
+          const status = invoice.status || 'Draft';
+          invoiceStatusMap[status] = (invoiceStatusMap[status] || 0) + 1;
+        });
+        
+        const totalInvoices = invoices.length || 1;
+        const colors = ['#8B5CF6', '#A78BFA', '#C4B5FD', '#DDD6FE'];
+        let colorIndex = 0;
+        
+        const processedInvoiceData = Object.entries(invoiceStatusMap).map(([status, count]) => ({
+          status,
+          count,
+          percentage: Math.round((count / totalInvoices) * 100),
+          color: colors[colorIndex++ % colors.length]
+        }));
+        
+        setInvoiceData(processedInvoiceData);
+        
+        // Get pending orders for validation
+        const pendingOrders = orders
+          .filter(order => order.status?.toLowerCase() === 'pending')
+          .slice(0, 10)
+          .map(order => ({
+            id: order.id,
+            distributorName: order.customerName || order.distributorName || 'Unknown Distributor',
+            distributorAvatar: '/distributor.png',
+            salesAssistantName: order.salesAssistant || order.createdBy || 'Unknown Sales Assistant',
+            salesAssistantAvatar: '/distributor.png',
+            orderValue: `${(order.totalAmount || 0).toLocaleString()}rwf`,
+            status: order.status || 'Pending',
+            statusColor: getStatusColor(order.status)
+          }));
+        
+        setOrdersToValidate(pendingOrders);
+      } else {
+        console.warn('Failed to fetch analytics data');
+        setAnalyticsData(prev => ({ ...prev, loading: false }));
+      }
+    } catch (error) {
+      console.error('Error fetching analytics data:', error);
+      setAnalyticsData(prev => ({ ...prev, loading: false }));
+    }
+  };
+
+  useEffect(() => {
+    fetchAnalyticsData();
+  }, []);
+
+  const confirmApprove = async () => {
+    if (!selectedOrder) return;
+    
+    try {
+      const response = await fetch(`http://localhost:8080/api/orders/${selectedOrder.id}/approve`, {
+        method: 'PUT',
+        headers: getAuthHeaders()
+      });
+      
+      if (response.ok) {
+        // Refresh analytics data
+        fetchAnalyticsData();
+      } else {
+        alert('Failed to approve order. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error approving order:', error);
+      alert('Error approving order. Please try again.');
+    }
+    
     setShowApproveModal(false);
     setSelectedOrder(null);
   };
 
-  const confirmReject = () => {
+  const confirmReject = async () => {
+    if (!selectedOrder) return;
+    
+    try {
+      const response = await fetch(`http://localhost:8080/api/orders/${selectedOrder.id}/reject`, {
+        method: 'PUT',
+        headers: getAuthHeaders()
+      });
+      
+      if (response.ok) {
+        // Refresh analytics data
+        fetchAnalyticsData();
+      } else {
+        alert('Failed to reject order. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error rejecting order:', error);
+      alert('Error rejecting order. Please try again.');
+    }
+    
     setShowRejectModal(false);
     setSelectedOrder(null);
   };
@@ -113,7 +229,9 @@ const SalesAnalytics = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Gross Profit</p>
-                <p className="text-2xl font-bold text-gray-900 mt-2">470,000rwf</p>
+                <p className="text-2xl font-bold text-gray-900 mt-2">
+                  {analyticsData.loading ? 'Loading...' : `${analyticsData.grossProfit.toLocaleString()}rwf`}
+                </p>
                 <p className="text-xs text-gray-500 mt-1">Update Sep 14, 2024</p>
               </div>
               <div className="p-3 bg-purple-100 rounded-lg">
@@ -134,7 +252,9 @@ const SalesAnalytics = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Total Cost of Goods Sold</p>
-                <p className="text-2xl font-bold text-gray-900 mt-2">5,000,000rwf</p>
+                <p className="text-2xl font-bold text-gray-900 mt-2">
+                  {analyticsData.loading ? 'Loading...' : `${analyticsData.totalCOGS.toLocaleString()}rwf`}
+                </p>
                 <p className="text-xs text-gray-500 mt-1">Update July 14, 2024</p>
               </div>
               <div className="p-3 bg-blue-100 rounded-lg">
@@ -155,7 +275,9 @@ const SalesAnalytics = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Total Recognized Revenue</p>
-                <p className="text-2xl font-bold text-gray-900 mt-2">560,000rwf</p>
+                <p className="text-2xl font-bold text-gray-900 mt-2">
+                  {analyticsData.loading ? 'Loading...' : `${analyticsData.totalRevenue.toLocaleString()}rwf`}
+                </p>
                 <p className="text-xs text-gray-500 mt-1">Update May 14, 2024</p>
               </div>
               <div className="p-3 bg-green-100 rounded-lg">
@@ -186,19 +308,25 @@ const SalesAnalytics = () => {
           
           <div className="relative">
             <div className="flex items-end justify-between h-80 space-x-2">
-              {chartData.map((item, index) => (
-                <div key={index} className="flex flex-col items-center space-y-2 flex-1">
-                  <div className="relative w-full flex items-end justify-center" style={{ height: '280px' }}>
-                    <div 
-                      className={`w-12 ${item.color} rounded-t-lg transition-all duration-300 hover:opacity-80`}
-                      style={{ height: `${(item.percentage / 100) * 280}px` }}
-                    ></div>
-                  </div>
-                  <div className="text-xs text-gray-600 text-center transform -rotate-45 origin-center w-16">
-                    {item.category}
-                  </div>
+              {chartData.length === 0 ? (
+                <div className="flex items-center justify-center w-full h-full text-gray-500">
+                  {analyticsData.loading ? 'Loading chart data...' : 'No category data available'}
                 </div>
-              ))}
+              ) : (
+                chartData.map((item, index) => (
+                  <div key={index} className="flex flex-col items-center space-y-2 flex-1">
+                    <div className="relative w-full flex items-end justify-center" style={{ height: '280px' }}>
+                      <div 
+                        className={`w-12 ${item.color} rounded-t-lg transition-all duration-300 hover:opacity-80`}
+                        style={{ height: `${(item.percentage / 100) * 280}px` }}
+                      ></div>
+                    </div>
+                    <div className="text-xs text-gray-600 text-center transform -rotate-45 origin-center w-16">
+                      {item.category}
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
             
             {/* Y-axis labels */}
@@ -298,6 +426,8 @@ const SalesAnalytics = () => {
               <input
                 type="text"
                 placeholder="Search..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10 pr-4 py-2 w-64 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               />
             </div>
@@ -329,7 +459,19 @@ const SalesAnalytics = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {ordersToValidate.map((order) => (
+              {ordersToValidate.length === 0 ? (
+                <tr>
+                  <td colSpan="5" className="py-8 text-center text-gray-500">
+                    {analyticsData.loading ? 'Loading orders...' : 'No pending orders to validate'}
+                  </td>
+                </tr>
+              ) : (
+                ordersToValidate
+                  .filter(order => 
+                    order.distributorName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    order.salesAssistantName.toLowerCase().includes(searchTerm.toLowerCase())
+                  )
+                  .map((order) => (
                 <tr key={order.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
@@ -372,7 +514,8 @@ const SalesAnalytics = () => {
                     </button>
                   </td>
                 </tr>
-              ))}
+                  ))
+              )}
             </tbody>
           </table>
 
