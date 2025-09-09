@@ -27,7 +27,7 @@ const PlaceOrder = () => {
     setLoading(true);
     
     try {
-      const response = await fetch('https://ggm-backend-h025.onrender.com/api/products', {
+      const response = await fetch('http://localhost:8081/api/products', {
         headers: getAuthHeaders()
       });
       

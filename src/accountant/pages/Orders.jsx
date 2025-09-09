@@ -23,8 +23,8 @@ const Orders = () => {
     setLoading(true);
     try {
       const [ordersResponse, invoicesResponse] = await Promise.all([
-        fetch('https://ggm-backend-h025.onrender.com/api/orders', { headers: getAuthHeaders() }),
-        fetch('https://ggm-backend-h025.onrender.com/api/invoices', { headers: getAuthHeaders() })
+        fetch('http://localhost:8081/api/orders', { headers: getAuthHeaders() }),
+        fetch('http://localhost:8081/api/invoices', { headers: getAuthHeaders() })
       ]);
       
       if (ordersResponse.ok) {

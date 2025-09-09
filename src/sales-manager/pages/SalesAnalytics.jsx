@@ -48,17 +48,17 @@ const SalesAnalytics = () => {
   const fetchAnalyticsData = async () => {
     try {
       // Fetch orders for analytics calculations
-      const ordersResponse = await fetch('https://ggm-backend-h025.onrender.com/api/orders', {
+      const ordersResponse = await fetch('http://localhost:8001/api/orders', {
         headers: getAuthHeaders()
       });
       
       // Fetch invoices for invoice analytics
-      const invoicesResponse = await fetch('https://ggm-backend-h025.onrender.com/api/invoices', {
+      const invoicesResponse = await fetch('http://localhost:8001/api/invoices', {
         headers: getAuthHeaders()
       });
       
       // Fetch products for category analytics
-      const productsResponse = await fetch('https://ggm-backend-h025.onrender.com/api/products', {
+      const productsResponse = await fetch('http://localhost:8001/api/products', {
         headers: getAuthHeaders()
       });
       
@@ -152,7 +152,7 @@ const SalesAnalytics = () => {
     if (!selectedOrder) return;
     
     try {
-      const response = await fetch(`https://ggm-backend-h025.onrender.com/api/orders/${selectedOrder.id}/approve`, {
+      const response = await fetch(`http://localhost:8001/api/orders/${selectedOrder.id}/approve`, {
         method: 'PUT',
         headers: getAuthHeaders()
       });
@@ -176,7 +176,7 @@ const SalesAnalytics = () => {
     if (!selectedOrder) return;
     
     try {
-      const response = await fetch(`https://ggm-backend-h025.onrender.com/api/orders/${selectedOrder.id}/reject`, {
+      const response = await fetch(`http://localhost:8001/api/orders/${selectedOrder.id}/reject`, {
         method: 'PUT',
         headers: getAuthHeaders()
       });

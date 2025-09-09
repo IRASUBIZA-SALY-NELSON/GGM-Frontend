@@ -13,7 +13,7 @@ const Distributors = () => {
 
   const statsCards = [
     {
-      title: 'Today Distributors',
+      title: 'Total Distributors',
       value: '470',
       change: '+8%',
       changeType: 'increase',

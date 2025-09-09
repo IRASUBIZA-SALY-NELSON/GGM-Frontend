@@ -84,21 +84,16 @@ const TenantRegister = () => {
         gender: formData.gender
       }
       
-      const response = await fetch('https://ggm-backend-h025.onrender.com/api/tenants/admin', {
+      const response = await fetch('http://localhost:8081/api/tenants/admin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(apiData)
       })
 
       if (response.ok) {
-        const result = await response.json()
+        await response.json()
         toast.success('Tenant registration successful!')
-        navigate('/auth/tenant-success', { 
-          state: { 
-            tenantId: result.id || 'Generated', 
-            companyName: formData.companyName 
-          } 
-        })
+        navigate('/auth/register')
       } else {
         const errorText = await response.text()
         console.log('❌ Error Response:', errorText)
@@ -304,12 +299,20 @@ const TenantRegister = () => {
             </button>
           </div>
 
-          {/* Login Link */}
-          <div className="text-center">
-            <span className="text-gray-600">Already have a tenant account? </span>
-            <Link to="/auth/login" className="font-medium text-purple-600 hover:text-purple-500">
-              Login
-            </Link>
+          {/* Navigation Links */}
+          <div className="flex flex-col space-y-2 text-center text-sm">
+            <div>
+              <span className="text-gray-600">Already have a tenant account? </span>
+              <Link to="/auth/login" className="font-medium text-purple-600 hover:text-purple-500">
+                Login
+              </Link>
+            </div>
+            <div>
+              <span className="text-gray-600">Need to register a user? </span>
+              <Link to="/auth/register" className="font-medium text-purple-600 hover:text-purple-500">
+                Register User
+              </Link>
+            </div>
           </div>
         </form>
       </div>

@@ -49,7 +49,7 @@ const VerifyOTP = () => {
     setLoading(true)
 
     try {
-      const response = await fetch('https://ggm-backend-h025.onrender.com/api/auth/verify-otp', {
+      const response = await fetch('http://localhost:8001/api/auth/verify-otp', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -77,7 +77,7 @@ const VerifyOTP = () => {
 
   const handleResendOTP = async () => {
     try {
-      const response = await fetch('https://ggm-backend-h025.onrender.com/api/auth/resend-otp', {
+      const response = await fetch('http://localhost:8001/api/auth/resend-otp', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

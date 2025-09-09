@@ -25,7 +25,7 @@ const Dashboard = () => {
   const fetchUsers = async () => {
     try {
       const token = localStorage.getItem('accessToken')
-      const response = await fetch('https://ggm-backend-h025.onrender.com/api/users', {
+      const response = await fetch('http://localhost:8081/api/users', {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -111,6 +111,8 @@ const Dashboard = () => {
       ][index % 6]
     }))
   }
+  const distributorCountToday = users.filter(u => (u.role === 'DISTRIBUTOR')).length
+
   const stats = [
     {
       title: 'Total Users',
@@ -128,11 +130,11 @@ const Dashboard = () => {
       period: 'Today, July 12, 2023',
     },
     {
-      title: 'Today Distributors',
-      value: '0',
-      change: '-5%',
-      changeType: 'decrease',
-      period: 'Today, July 12, 2023',
+      title: 'Total Distributors',
+      value: distributorCountToday.toString(),
+      change: '+0%',
+      changeType: 'increase',
+      period: new Date().toDateString(),
     },
     {
       title: 'Total Orders',

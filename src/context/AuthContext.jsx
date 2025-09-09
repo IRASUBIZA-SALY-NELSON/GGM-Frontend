@@ -46,7 +46,7 @@ export const AuthProvider = ({ children }) => {
     // Call backend logout endpoint if token exists
     if (accessToken) {
       try {
-        await fetch('https://ggm-backend-h025.onrender.com/api/auth/logout', {
+        await fetch('http://localhost:8081/api/auth/logout', {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${accessToken}`,

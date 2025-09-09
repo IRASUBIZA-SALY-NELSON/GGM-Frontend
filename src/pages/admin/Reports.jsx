@@ -1,51 +1,149 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Search, Filter, TrendingUp, TrendingDown } from 'lucide-react'
+import { API_ENDPOINTS, apiCall, HTTP_METHODS } from '../../config/api'
 import FilterModal from '../../components/modals/FilterModal'
 
 const Reports = () => {
   const [searchTerm, setSearchTerm] = useState('')
   const [showFilterModal, setShowFilterModal] = useState(false)
+  const [users, setUsers] = useState([])
+  const [distributors, setDistributors] = useState([])
+  const [auditLogs, setAuditLogs] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+
+  useEffect(() => {
+    fetchReportsData()
+  }, [])
+
+  const fetchReportsData = async () => {
+    try {
+      setLoading(true)
+      
+      // Fetch users and audit logs in parallel
+      const [usersData, auditData] = await Promise.allSettled([
+        apiCall(API_ENDPOINTS.USERS, { method: HTTP_METHODS.GET }),
+        apiCall(API_ENDPOINTS.AUDIT_LOGS, { method: HTTP_METHODS.GET }).catch(() => [])
+      ])
+      
+      const users = usersData.status === 'fulfilled' ? usersData.value : []
+      setUsers(users)
+      
+      // Filter users with DISTRIBUTOR role
+      const distributorUsers = users.filter(user => user.role === 'DISTRIBUTOR')
+      setDistributors(distributorUsers)
+      
+      setAuditLogs(auditData.status === 'fulfilled' ? auditData.value : [])
+      
+    } catch (error) {
+      console.error('Error fetching reports data:', error)
+      setError(error.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const distributorCount = distributors.length
+  const totalUsers = users.length
+  const totalDistributors = distributorCount
 
   const statsCards = [
     {
-      title: 'Today Distributors',
-      value: '470',
-      change: '+8%',
+      title: 'Total Distributors',
+      value: distributorCount.toString(),
+      change: '+0%',
       changeType: 'increase',
-      updateTime: 'Update: July 14, 2023',
+      updateTime: `Update: ${new Date().toLocaleDateString()}`,
       icon: '📦',
       color: 'purple'
     },
     {
       title: 'Total Users',
-      value: '560',
-      change: '+12%',
+      value: totalUsers.toString(),
+      change: '+0%',
       changeType: 'increase',
-      updateTime: 'Update: July 16, 2023',
+      updateTime: `Update: ${new Date().toLocaleDateString()}`,
       icon: '👤',
       color: 'purple'
     },
     {
-      title: 'Total Users',
-      value: '560',
-      change: '+19%',
+      title: 'Total Distributors',
+      value: totalDistributors.toString(),
+      change: '+0%',
       changeType: 'increase',
-      updateTime: 'Update: July 19, 2023',
+      updateTime: `Update: ${new Date().toLocaleDateString()}`,
       icon: '👥',
       color: 'purple'
     }
   ]
 
-  const reportData = [
-    { id: 1, date: '10/12/2025', user: 'Darlene Robertson', role: 'Administrator', activity: 'Delete User Damson Idriss', avatar: 'DR' },
-    { id: 2, date: '10/12/2025', user: 'Floyd Miles', role: 'Store Manager', activity: 'Approve Order from Distributor Allen', avatar: 'FM' },
-    { id: 3, date: '10/12/2025', user: 'Cody Fisher', role: 'Sales Assistant', activity: 'Delete Order from Distributor john', avatar: 'CF' },
-    { id: 4, date: '10/12/2025', user: 'Dianne Russell', role: 'Sales Manager', activity: 'Update Reports from Accountant Doe', avatar: 'DR' },
-    { id: 5, date: '10/12/2025', user: 'Savannah Nguyen', role: 'Sales Manager', activity: 'Delete User John Doe', avatar: 'SN' },
-    { id: 6, date: '10/12/2025', user: 'Jacob Jones', role: 'Administrator', activity: 'Approve Order from Distributor Eugene', avatar: 'JJ' },
-    { id: 7, date: '10/12/2025', user: 'Marvin McKinney', role: 'Store Manager', activity: 'Delete Order from Distributor Doe', avatar: 'MM' },
-    { id: 8, date: '10/12/2025', user: 'Kathryn Murphy', role: 'Store Manager', activity: 'Delete Order from Distributor Sam', avatar: 'KM' },
-  ]
+  // Helper functions
+  const formatDate = (timestamp) => {
+    return new Date(timestamp).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    })
+  }
+
+  const getUserInitials = (firstName, lastName) => {
+    if (firstName && lastName) {
+      return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase()
+    }
+    return 'U'
+  }
+
+  const getUserDisplayName = (actor) => {
+    if (actor?.firstName && actor?.lastName) {
+      return `${actor.firstName} ${actor.lastName}`
+    }
+    if (actor?.email) {
+      return actor.email.split('@')[0]
+    }
+    return 'Unknown User'
+  }
+
+  const getRoleDisplayName = (role) => {
+    if (!role) return 'Unknown'
+    return role.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase())
+  }
+
+  const getActivityDescription = (log) => {
+    if (log.description) return log.description
+    
+    const action = log.action?.toLowerCase() || 'performed'
+    const entity = log.entity?.toLowerCase() || 'action'
+    
+    switch (log.action?.toUpperCase()) {
+      case 'LOGIN':
+        return 'User logged into the system'
+      case 'LOGOUT':
+        return 'User logged out of the system'
+      case 'CREATE':
+        return `Created new ${entity}${log.entityId ? ` (ID: ${log.entityId})` : ''}`
+      case 'UPDATE':
+        return `Updated ${entity}${log.entityId ? ` (ID: ${log.entityId})` : ''}`
+      case 'DELETE':
+        return `Deleted ${entity}${log.entityId ? ` (ID: ${log.entityId})` : ''}`
+      case 'APPROVE':
+        return `Approved ${entity}${log.entityId ? ` (ID: ${log.entityId})` : ''}`
+      default:
+        return `${action.charAt(0).toUpperCase() + action.slice(1)} ${entity}${log.entityId ? ` (ID: ${log.entityId})` : ''}`
+    }
+  }
+
+  // Filter logs based on search term
+  const filteredLogs = auditLogs.filter(log => {
+    if (!searchTerm) return true
+    const searchLower = searchTerm.toLowerCase()
+    const userName = getUserDisplayName(log.actor).toLowerCase()
+    const role = getRoleDisplayName(log.actor?.role).toLowerCase()
+    const activity = getActivityDescription(log).toLowerCase()
+    
+    return userName.includes(searchLower) || 
+           role.includes(searchLower) || 
+           activity.includes(searchLower)
+  })
 
   const handleFilter = () => {
     setShowFilterModal(true)
@@ -143,27 +241,54 @@ const Reports = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {reportData.map((report) => (
-                <tr key={report.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {report.date}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center">
-                        <span className="text-white text-sm font-medium">{report.avatar}</span>
-                      </div>
-                      <span className="text-sm font-medium text-gray-900">{report.user}</span>
+              {loading ? (
+                <tr>
+                  <td colSpan="4" className="px-6 py-8 text-center">
+                    <div className="flex items-center justify-center">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+                      <span className="ml-2 text-gray-500">Loading reports...</span>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {report.role}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {report.activity}
+                </tr>
+              ) : error ? (
+                <tr>
+                  <td colSpan="4" className="px-6 py-8 text-center">
+                    <p className="text-red-600">Error loading reports: {error}</p>
                   </td>
                 </tr>
-              ))}
+              ) : filteredLogs.length === 0 ? (
+                <tr>
+                  <td colSpan="4" className="px-6 py-8 text-center">
+                    <p className="text-gray-500">No reports found</p>
+                  </td>
+                </tr>
+              ) : (
+                filteredLogs.map((log, index) => (
+                  <tr key={`${log.timestamp}-${index}`} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {formatDate(log.timestamp)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center">
+                          <span className="text-white text-sm font-medium">
+                            {getUserInitials(log.actor?.firstName, log.actor?.lastName)}
+                          </span>
+                        </div>
+                        <span className="text-sm font-medium text-gray-900">
+                          {getUserDisplayName(log.actor)}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {getRoleDisplayName(log.actor?.role)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {getActivityDescription(log)}
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
@@ -178,7 +303,7 @@ const Reports = () => {
                 <option>25</option>
                 <option>50</option>
               </select>
-              <span className="text-sm text-gray-500">Showing 1 to 10 out of 50 records</span>
+              <span className="text-sm text-gray-500">Showing 1 to 10 out of {auditLogs.length} records</span>
             </div>
             <div className="flex items-center space-x-2">
               <button className="px-3 py-1 text-sm text-gray-500 hover:text-gray-700">
