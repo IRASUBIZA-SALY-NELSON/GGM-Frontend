@@ -42,12 +42,12 @@ const Distributors = () => {
     
     try {
       // Fetch distributors
-      const distributorsResponse = await fetch('https://ggm-backend-h025.onrender.com/api/distributors', {
+      const distributorsResponse = await fetch('http://localhost:8001/api/distributors', {
         headers: getAuthHeaders()
       });
       
       // Fetch orders to calculate last order and contribution
-      const ordersResponse = await fetch('https://ggm-backend-h025.onrender.com/api/orders', {
+      const ordersResponse = await fetch('http://localhost:8001/api/orders', {
         headers: getAuthHeaders()
       });
       
@@ -114,7 +114,7 @@ const Distributors = () => {
     if (!selectedDistributor) return;
     
     try {
-      const response = await fetch(`https://ggm-backend-h025.onrender.com/api/distributors/${selectedDistributor.id}`, {
+      const response = await fetch(`http://localhost:8001/api/distributors/${selectedDistributor.id}`, {
         method: 'DELETE',
         headers: getAuthHeaders()
       });
@@ -171,7 +171,7 @@ const Distributors = () => {
         <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Today Distributors</p>
+              <p className="text-sm font-medium text-gray-600">Total Distributors</p>
               <p className="text-2xl font-bold text-gray-900 mt-2">
                 {stats.loading ? 'Loading...' : stats.totalDistributors}
               </p>

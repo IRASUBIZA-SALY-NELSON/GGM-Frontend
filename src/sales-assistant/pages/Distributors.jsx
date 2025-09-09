@@ -112,11 +112,11 @@ const Distributors = () => {
       <div className="p-6">
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          {/* Today Distributors */}
+          {/* Total Distributors */}
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
             <div className="flex justify-between items-start">
               <div>
-                <p className="text-sm text-gray-500 mb-1">Today Distributors</p>
+                <p className="text-sm text-gray-500 mb-1">Total Distributors</p>
                 <p className="text-2xl font-bold text-gray-900">470</p>
                 <p className="text-xs text-gray-400 mt-1">Updated: July 14, 2025</p>
               </div>
