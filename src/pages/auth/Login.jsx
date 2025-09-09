@@ -50,7 +50,7 @@ const Login = () => {
     setLoading(true)
 
     try {
-      const response = await fetch('https://ggm-backend-h025.onrender.com/api/auth/login', {
+      const response = await fetch('http://localhost:8081/api/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -258,15 +258,26 @@ const Login = () => {
             </button>
           </div>
 
-          {/* Register Link */}
-          <div className="text-center">
-            <span className="text-gray-600">Don't have an account? </span>
-            <Link
-              to="/auth/register"
-              className="font-medium text-purple-600 hover:text-purple-500"
-            >
-              Ask your Tenant.
-            </Link>
+          {/* Navigation Links */}
+          <div className="flex flex-col space-y-2 text-center text-sm">
+            <div>
+              <span className="text-gray-600">Don't have an account? </span>
+              <Link
+                to="/auth/register"
+                className="font-medium text-purple-600 hover:text-purple-500"
+              >
+                Register User
+              </Link>
+            </div>
+            <div>
+              <span className="text-gray-600">Need to register a company? </span>
+              <Link
+                to="/auth/tenant-register"
+                className="font-medium text-purple-600 hover:text-purple-500"
+              >
+                Register Tenant
+              </Link>
+            </div>
           </div>
         </form>
 

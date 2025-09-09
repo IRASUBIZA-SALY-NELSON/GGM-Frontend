@@ -117,7 +117,7 @@ const Register = () => {
 
       console.log('📤 Sending API request:', apiData)
       
-      const response = await fetch('https://ggm-backend-h025.onrender.com/api/auth/register', {
+      const response = await fetch('http://localhost:8081/api/auth/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -359,13 +359,13 @@ const Register = () => {
               to="/auth/login"
               className="font-medium text-purple-600 hover:text-purple-500"
             >
-              Back to Login
+              Already have an account? Login here
             </Link>
             <Link
               to="/auth/tenant-register"
               className="font-medium text-gray-600 hover:text-gray-500"
             >
-              Register as New Tenant
+              Need to register a new company? Register as Tenant
             </Link>
           </div>
         </form>

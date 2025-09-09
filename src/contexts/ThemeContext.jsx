@@ -12,15 +12,32 @@ export const useTheme = () => {
 
 export const ThemeProvider = ({ children }) => {
   const [theme, setTheme] = useState(() => {
-    // Get theme from localStorage or default to 'light'
+    // Get theme from localStorage or default to 'system'
     const savedTheme = localStorage.getItem('theme');
-    return savedTheme || 'light';
+    return savedTheme || 'system';
   });
+
+  const [systemTheme, setSystemTheme] = useState(() => {
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  });
+
+  useEffect(() => {
+    // Listen for system theme changes
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const handleChange = (e) => {
+      setSystemTheme(e.matches ? 'dark' : 'light');
+    };
+
+    mediaQuery.addEventListener('change', handleChange);
+    return () => mediaQuery.removeEventListener('change', handleChange);
+  }, []);
 
   useEffect(() => {
     // Apply theme to document
     const root = document.documentElement;
-    if (theme === 'dark') {
+    const effectiveTheme = theme === 'system' ? systemTheme : theme;
+    
+    if (effectiveTheme === 'dark') {
       root.classList.add('dark');
     } else {
       root.classList.remove('dark');
@@ -28,16 +45,27 @@ export const ThemeProvider = ({ children }) => {
     
     // Save theme to localStorage
     localStorage.setItem('theme', theme);
-  }, [theme]);
+  }, [theme, systemTheme]);
+
+  const setThemeMode = (newTheme) => {
+    setTheme(newTheme);
+  };
 
   const toggleTheme = () => {
-    setTheme(prevTheme => prevTheme === 'light' ? 'dark' : 'light');
+    setTheme(prevTheme => {
+      if (prevTheme === 'light') return 'dark';
+      if (prevTheme === 'dark') return 'system';
+      return 'light';
+    });
   };
 
   const value = {
     theme,
+    systemTheme,
+    setTheme: setThemeMode,
     toggleTheme,
-    isDark: theme === 'dark'
+    isDark: (theme === 'system' ? systemTheme : theme) === 'dark',
+    effectiveTheme: theme === 'system' ? systemTheme : theme
   };
 
   return (

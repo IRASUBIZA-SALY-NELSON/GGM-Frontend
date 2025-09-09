@@ -100,7 +100,7 @@ const PricingCatalog = () => {
     if (!newUnit.trim()) return;
     
     try {
-      const response = await fetch('https://ggm-backend-h025.onrender.com/api/units', {
+      const response = await fetch('http://localhost:8001/api/units', {
         method: 'POST',
         headers: getAuthHeaders(),
         body: JSON.stringify({ name: newUnit.trim() })
@@ -124,7 +124,7 @@ const PricingCatalog = () => {
     if (!newCategory.trim()) return;
     
     try {
-      const response = await fetch('https://ggm-backend-h025.onrender.com/api/categories', {
+      const response = await fetch('http://localhost:8001/api/categories', {
         method: 'POST',
         headers: getAuthHeaders(),
         body: JSON.stringify({ name: newCategory.trim() })

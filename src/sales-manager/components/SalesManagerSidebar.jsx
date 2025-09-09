@@ -1,5 +1,5 @@
 import React from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, 
   Users, 
@@ -11,6 +11,8 @@ import {
 } from 'lucide-react';
 
 const SalesManagerSidebar = () => {
+  const navigate = useNavigate()
+  
   const navigationItems = [
     {
       name: 'Dashboard',
@@ -49,6 +51,12 @@ const SalesManagerSidebar = () => {
     },
   ];
 
+  const handleLogout = () => {
+    localStorage.removeItem('token')
+    localStorage.removeItem('user')
+    navigate('/auth/login')
+  }
+
   return (
     <div className="w-64 bg-white shadow-lg h-screen flex flex-col">
       {/* Logo */}
@@ -82,7 +90,10 @@ const SalesManagerSidebar = () => {
 
       {/* Logout */}
       <div className="p-4 border-t border-gray-200">
-        <button className="flex items-center w-full px-4 py-3 text-sm font-medium text-gray-700 rounded-lg hover:bg-gray-100 transition-colors">
+        <button 
+          onClick={handleLogout}
+          className="flex items-center w-full px-4 py-3 text-sm font-medium text-red-600 rounded-lg hover:bg-red-50 transition-colors"
+        >
           <LogOut className="mr-3 h-5 w-5" />
           Logout
         </button>

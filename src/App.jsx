@@ -105,8 +105,11 @@ function App() {
         <Route path="/auth/reset-password" element={<ResetPassword />} />
         <Route path="/auth/success" element={<Success />} />
         
-        {/* Root Route - Redirect to login for unauthorized users */}
-        <Route path="/" element={<ProtectedRoute><RoleBasedRedirect /></ProtectedRoute>} />
+        {/* Root Route - Redirect to tenant registration first */}
+        <Route path="/" element={<Navigate to="/auth/tenant-register" replace />} />
+        
+        {/* Dashboard redirect for authenticated users */}
+        <Route path="/dashboard" element={<ProtectedRoute><RoleBasedRedirect /></ProtectedRoute>} />
         <Route path="/admin/dashboard" element={
           <ProtectedRoute>
             <Layout>

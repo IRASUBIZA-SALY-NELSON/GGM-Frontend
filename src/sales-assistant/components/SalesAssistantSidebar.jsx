@@ -1,9 +1,10 @@
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, ShoppingCart, Users, Package } from 'lucide-react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { LayoutDashboard, ShoppingCart, Users, Package, LogOut } from 'lucide-react';
 
 const SalesAssistantSidebar = () => {
   const location = useLocation();
+  const navigate = useNavigate();
 
   const navigationItems = [
     {
@@ -28,8 +29,14 @@ const SalesAssistantSidebar = () => {
     },
   ];
 
+  const handleLogout = () => {
+    localStorage.removeItem('token')
+    localStorage.removeItem('user')
+    navigate('/auth/login')
+  }
+
   return (
-    <div className="w-64 bg-white shadow-sm border-r border-gray-200 h-full">
+    <div className="w-64 bg-white shadow-sm border-r border-gray-200 h-full flex flex-col">
       {/* Logo */}
       <div className="flex items-center px-6 py-4 border-b border-gray-200">
         <div className="flex items-center space-x-2">
@@ -40,7 +47,7 @@ const SalesAssistantSidebar = () => {
       </div>
 
       {/* Navigation */}
-      <nav className="mt-6">
+      <nav className="mt-6 flex-1">
         <div className="px-3">
           {navigationItems.map((item) => {
             const isActive = location.pathname === item.href || location.pathname.startsWith(item.href + '/');
@@ -61,6 +68,17 @@ const SalesAssistantSidebar = () => {
           })}
         </div>
       </nav>
+
+      {/* Logout Button */}
+      <div className="p-4 border-t border-gray-200">
+        <button
+          onClick={handleLogout}
+          className="w-full flex items-center px-3 py-2 text-sm font-medium text-red-600 rounded-lg hover:bg-red-50 transition-colors"
+        >
+          <LogOut className="w-5 h-5 mr-3" />
+          Logout
+        </button>
+      </div>
     </div>
   );
 };

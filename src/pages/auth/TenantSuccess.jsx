@@ -140,7 +140,7 @@ const TenantSuccess = () => {
         {/* Action Buttons */}
         <div className="space-y-3">
           <Link
-            to="/auth/login"
+            to="/auth/register"
             className="w-full flex justify-center items-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
           >
             <Key className="h-4 w-4 mr-2" />
